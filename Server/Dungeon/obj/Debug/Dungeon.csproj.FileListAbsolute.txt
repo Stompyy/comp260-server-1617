@@ -1,0 +1,12 @@
+C:\Users\Rich\Downloads\Lecture 03\Lecture 03\03.Chat system\Server\Dungeon\bin\Debug\Dungeon.dll
+C:\Users\Rich\Downloads\Lecture 03\Lecture 03\03.Chat system\Server\Dungeon\bin\Debug\Dungeon.pdb
+C:\Users\Rich\Downloads\Lecture 03\Lecture 03\03.Chat system\Server\Dungeon\obj\Debug\Dungeon.csprojResolveAssemblyReference.cache
+C:\Users\Rich\Downloads\Lecture 03\Lecture 03\03.Chat system\Server\Dungeon\obj\Debug\Dungeon.csproj.CoreCompileInputs.cache
+C:\Users\Rich\Downloads\Lecture 03\Lecture 03\03.Chat system\Server\Dungeon\obj\Debug\Dungeon.dll
+C:\Users\Rich\Downloads\Lecture 03\Lecture 03\03.Chat system\Server\Dungeon\obj\Debug\Dungeon.pdb
+C:\Users\Rich\Desktop\MUD\MudFinal\03.Chat system\Server\Dungeon\bin\Debug\Dungeon.dll
+C:\Users\Rich\Desktop\MUD\MudFinal\03.Chat system\Server\Dungeon\bin\Debug\Dungeon.pdb
+C:\Users\Rich\Desktop\MUD\MudFinal\03.Chat system\Server\Dungeon\obj\Debug\Dungeon.csprojResolveAssemblyReference.cache
+C:\Users\Rich\Desktop\MUD\MudFinal\03.Chat system\Server\Dungeon\obj\Debug\Dungeon.csproj.CoreCompileInputs.cache
+C:\Users\Rich\Desktop\MUD\MudFinal\03.Chat system\Server\Dungeon\obj\Debug\Dungeon.dll
+C:\Users\Rich\Desktop\MUD\MudFinal\03.Chat system\Server\Dungeon\obj\Debug\Dungeon.pdb
