@@ -14,45 +14,79 @@ using Dungeon;
 
 namespace Server
 {
+    // Struct binds a player instance to its socket for easy access from the playerDictionary
+    struct PlayerInfo
+    {
+        public Player player;
+        public Socket socket;
+
+        // Constructor
+        public PlayerInfo(Player newPlayer, Socket newSocket)
+        {
+            player = newPlayer;
+            socket = newSocket;
+        }
+    }
+
     class Program
     {
+        // Create a single instance of the dungeon for all players to use
         static DungeonClass myDungeon = new DungeonClass();
 
-        // Dictionary to store all players in. Uses Socket as key
-        static Dictionary<Socket, Player> playerDictionary = new Dictionary<Socket, Player>();
+        // Dictionary stores all players and their appropriate socket in the PlayerInfo struct, with a string key
+        static Dictionary<String, PlayerInfo> playerDictionary = new Dictionary<String, PlayerInfo>();
 
-        static Dictionary<String, Socket> clientDictionary = new Dictionary<String, Socket>();
+        // Initialise a client identifying integer
         static int clientID = 1;
 
-        static void SendClientName(Socket s, String clientName)
+        // Reverse look up for the string name key of the playerDictionary using the Player field of the PlayerInfo struct
+        static String GetNameFromPlayer(Player player)
+        {
+            // Always lock when accessing!
+            lock (playerDictionary)
+            {
+                foreach (KeyValuePair<String, PlayerInfo> pair in playerDictionary)
+                {
+                    if (pair.Value.player == player)
+                    {
+                        return pair.Key;
+                    }
+                }
+                return "";
+            }
+        }
+
+        // Send clientName to socket
+        static void SendClientName(Socket socket, String clientName)
         {
             ClientNameMsg nameMsg = new ClientNameMsg();
             nameMsg.name = clientName;
 
-            // Update the Player instance with the name
-            playerDictionary[s].SetName(clientName);
-
             MemoryStream outStream = nameMsg.WriteData();
 
-            s.Send(outStream.GetBuffer() );
+            socket.Send(outStream.GetBuffer() );
         }
 
+        // Send a message to every socket in the playerDictionary's PlayerInfo struct values, containing a current list of all client names from the keys of the dictionary
         static void SendClientList()
         {
             ClientListMsg clientListMsg = new ClientListMsg();
-
-            lock (clientDictionary)
+            
+            // What did I say about locking!
+            lock (playerDictionary)
             {
-                foreach (KeyValuePair<String, Socket> s in clientDictionary)
+                // Fill the clientListMsg with all the string dictionary keys
+                foreach (KeyValuePair<String, PlayerInfo> pair in playerDictionary)
                 {
-                    clientListMsg.clientList.Add(s.Key);
+                    clientListMsg.clientList.Add(pair.Key);
                 }
 
                 MemoryStream outStream = clientListMsg.WriteData();
 
-                foreach (KeyValuePair<String, Socket> s in clientDictionary)
+                // Send it to each socket
+                foreach (KeyValuePair<String, PlayerInfo> pair in playerDictionary)
                 {
-                    s.Value.Send(outStream.GetBuffer());
+                    pair.Value.socket.Send(outStream.GetBuffer());
                 }
             }
         }
@@ -64,19 +98,19 @@ namespace Server
             chatMsg.msg = msg;
 
             MemoryStream outStream = chatMsg.WriteData();
-
-            lock (clientDictionary)
-            {            
-                foreach (KeyValuePair<String,Socket> s in clientDictionary)
+            
+            lock (playerDictionary)
+            {
+                foreach (KeyValuePair<String, PlayerInfo> pair in playerDictionary)
                 {
                     try
                     {
-                        s.Value.Send(outStream.GetBuffer());
+                        pair.Value.socket.Send(outStream.GetBuffer());
                     }
                     catch (System.Exception)
                     {
-                    	
-                    }                    
+
+                    }
                 }
             }
         }
@@ -117,65 +151,57 @@ namespace Server
 
         static Socket GetSocketFromName(String name)
         {
-            lock (clientDictionary)
+            lock (playerDictionary)
             {
-                return clientDictionary[name];
+                return playerDictionary[name].socket;
             }
         }
 
-        static String GetNameFromSocket(Socket s)
+        static String GetNameFromSocket(Socket socket)
         {
-            lock (clientDictionary)
+            lock (playerDictionary)
             {
-                foreach (KeyValuePair<String, Socket> o in clientDictionary)
+                foreach (KeyValuePair<String, PlayerInfo> pair in playerDictionary)
                 {
-                    if (o.Value == s)
+                    if (pair.Value.socket == socket)
                     {
-                        return o.Key;
+                        return pair.Key;
                     }
                 }
             }
 
             return null;
         }
-
-        static void RemoveClientBySocket(Socket socket)
-        {
-            string name = GetNameFromSocket(socket);
-
-            if (name != null)
-            {
-                lock (clientDictionary)
-                {
-                    clientDictionary.Remove(name);
-                }
-                lock (playerDictionary)
-                {
-                    playerDictionary.Remove(socket);
-                }
-            }
-        }
-
-
-        static void receiveClientProcess(Object o)
+        
+        static void ReceiveClientProcess(Object socket)
         {
             bool bQuit = false;
 
-            Socket chatClient = (Socket)o;
+            // Cast object argument back into a socket
+            Socket chatClient = (Socket)socket;
 
+            // server console debug message
             Console.WriteLine("client receive thread for " + GetNameFromSocket(chatClient));
-            Player newPlayer = new Player();
-            newPlayer.SetRoom(myDungeon.GetStartRoom());
-            if (playerDictionary.ContainsKey(chatClient))
+
+            // Create a new Player class instance
+            Player newPlayer = new Player(GetNameFromSocket(chatClient), new List<Item>());
+
+            // Initialise the start location
+            newPlayer.CurrentRoom = myDungeon.StartRoom;
+
+            // Locking on heavens door
+            lock (playerDictionary)
             {
-                playerDictionary[chatClient] = newPlayer;
-            }
-            else
-            {
-                playerDictionary.Add(chatClient, newPlayer);
+                // Sanity check, then add new Player and appropriate socket as a PlayerInfo struct to the playerDictionary with the clientName as the dictionary's key
+                if (playerDictionary.ContainsKey(GetNameFromSocket(chatClient)))
+                    playerDictionary[GetNameFromSocket(chatClient)] = new PlayerInfo(newPlayer, chatClient);
+                else
+                    playerDictionary.Add(GetNameFromSocket(chatClient), new PlayerInfo(newPlayer, chatClient));
             }
 
+            // On new player instantiation, update all players with the new client list
             SendClientList();
+
 
             while (bQuit == false)
             {
@@ -191,16 +217,16 @@ namespace Server
                         MemoryStream stream = new MemoryStream(buffer);
                         BinaryReader read = new BinaryReader(stream);
 
-                        Msg m = Msg.DecodeStream(read);
+                        Msg message = Msg.DecodeStream(read);
 
-                        if (m != null)
+                        if (message != null)
                         {
                             Console.Write("Got a message: ");
-                            switch (m.mID)
+                            switch (message.mID)
                             {
                                 case PublicChatMsg.ID:
                                     {
-                                        PublicChatMsg publicMsg = (PublicChatMsg)m;
+                                        PublicChatMsg publicMsg = (PublicChatMsg)message;
 
                                         String formattedMsg = "<" + GetNameFromSocket(chatClient)+"> " + publicMsg.msg;
 
@@ -212,7 +238,7 @@ namespace Server
 
                                 case PrivateChatMsg.ID:
                                     {
-                                        PrivateChatMsg privateMsg = (PrivateChatMsg)m;
+                                        PrivateChatMsg privateMsg = (PrivateChatMsg)message;
 
                                         String formattedMsg = "PRIVATE <" + GetNameFromSocket(chatClient) + "> " + privateMsg.msg;
 
@@ -227,30 +253,69 @@ namespace Server
 
                                 case GameMsg.ID:
                                     {
-                                        GameMsg gameMessage = (GameMsg)m;
+                                        // Cast back to GameMsg class
+                                        GameMsg gameMessage = (GameMsg)message;
 
+                                        // Get the string from the GameMsg class
                                         String formattedMsg = gameMessage.msg;
 
-                                        Room tempCurrentRoom = playerDictionary[chatClient].GetRoom();
+                                        // Get the sending client name, to be used as a dictionary key next, and to pass the String value
+                                        String clientName = GetNameFromSocket(chatClient);
 
-                                        // Looks up player from dictionary by the socket, then gets reference to current room
-                                        String sendMsg = myDungeon.Process(ref playerDictionary[chatClient].GetRoom(), formattedMsg);
-                                        sendMsg += "\r\n" + myDungeon.DescribeRoom(tempCurrentRoom);
-
-                                        // Update room with new player presence
-                                        if (playerDictionary[chatClient].GetRoom() != tempCurrentRoom)
+                                        // Lock it before changing it
+                                        lock (playerDictionary)
                                         {
-                                            Player p;
-                                            playerDictionary[chatClient].GetRoom().RemovePlayer(ref playerDictionary[chatClient]);
-                                            tempCurrentRoom.AddPlayer(ref playerDictionary[chatClient]);
+                                            // Temporary variable to alter outside of dictionary
+                                            Player tempPlayer = playerDictionary[clientName].player;
+
+                                            // Update function of the DungeonClass instance. If moved, Updates the current room of the player instance, and the currentRoom occupency of the dungeon room
+                                            String sendMsg = myDungeon.Update(ref playerDictionary[clientName].player.GetCurrentRoomRef, ref tempPlayer, clientName, formattedMsg);
+
+                                            // Console debug message
+                                            Console.WriteLine(sendMsg);
+
+                                            // "Say" command will always return a sendMsg beginning with "Room chat:". If true then send message to all players in room
+                                            if (sendMsg.Substring(0, 10) == "Room chat:")
+                                            {
+                                                foreach (String playerName in tempPlayer.GetCurrentRoomRef.PlayersInRoom)
+                                                {
+                                                    SendGameMessage(playerDictionary[playerName].socket, "", sendMsg);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                // Update dictionary variable
+                                                playerDictionary[clientName] = new PlayerInfo(tempPlayer, playerDictionary[clientName].socket);
+
+                                                // Send the complete message to the player socket
+                                                SendGameMessage(chatClient, "", sendMsg);
+                                            }
                                         }
+                                    }
+                                    break;
 
-                                        playerDictionary[chatClient].SetRoom(tempCurrentRoom);
+                                case PlayerInitMsg.ID:
+                                    {
+                                        // Cast back to GameMsg class
+                                        PlayerInitMsg playerInitMessage = (PlayerInitMsg)message;
 
-                                        Console.WriteLine(sendMsg);
-                                        SendGameMessage(chatClient, "", sendMsg);
+                                        // Get the string from the PlayerInitMsg class
+                                        String characterSheetString = playerInitMessage.msg;
 
-                                        
+                                        String[] processedCharacterSheet = characterSheetString.Split(' ');
+
+                                        // Get the sending client name, to be used as a dictionary key next, and to pass the String value
+                                        String clientName = GetNameFromSocket(chatClient);
+
+                                        // Lock it like it's hot
+                                        lock (playerDictionary)
+                                        {
+                                            Player tempPlayer = playerDictionary[clientName].player;
+                                            tempPlayer.Init(processedCharacterSheet);
+                                            // Update dictionary variable
+                                            playerDictionary[clientName] = new PlayerInfo(tempPlayer, playerDictionary[clientName].socket);
+
+                                        }
                                     }
                                     break;
 
@@ -260,16 +325,34 @@ namespace Server
                         }
                     }                   
                 }
+
+                // Remove player from game
                 catch (Exception)
                 {
                     bQuit = true;
 
+                    // Lost the player message
                     String output = "Lost client: " + GetNameFromSocket(chatClient);
+
+                    // Debug message to server console
                     Console.WriteLine(output);
+
+                    // Inform the other players
                     SendChatMessage(output);
 
-                    RemoveClientBySocket(chatClient);
+                    // Always lock the list!!!
+                    lock (playerDictionary)
+                    {
+                        // Sanity check, then remove player name from the current rooms list of currently occupying players names
+                        if (playerDictionary[GetNameFromSocket(chatClient)].player.GetCurrentRoomRef.PlayersInRoom.Contains(GetNameFromSocket(chatClient)))
+                            playerDictionary[GetNameFromSocket(chatClient)].player.GetCurrentRoomRef.RemovePlayer(GetNameFromSocket(chatClient));
 
+                        // Sanity check, then remove player information from playerDictionary
+                        if (playerDictionary.ContainsKey(GetNameFromSocket(chatClient)))
+                            playerDictionary.Remove(GetNameFromSocket(chatClient));
+                    }
+
+                    // Update all other players current client list
                     SendClientList();
                 }
             }
@@ -280,48 +363,58 @@ namespace Server
             // Initialise the static DungeonClass instance
             myDungeon.Init();
 
+            // Listening socket initialisation
             Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
+            // Local address for developing purposes!
             serverSocket.Bind(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8500));
+
+            // Listen for new clients
             serverSocket.Listen(32);
 
             bool bQuit = false;
 
-            Console.WriteLine("Server");
+            // Console message to boast about being a server!
+            Console.WriteLine("This is the server!");
 
             while (!bQuit)
             {
+                // When there is a new connection, create a new socket
                 Socket serverClient = serverSocket.Accept();
 
-                Thread myThread = new Thread(receiveClientProcess);
+                // Start a new thread assigned to this socket
+                Thread myThread = new Thread(ReceiveClientProcess);
                 myThread.Start(serverClient);
 
-                lock (clientDictionary)
+                // Lock the kazbah
+                lock (playerDictionary)
                 {
-                    // Create a new player instance
-                    Player newPlayer = new Player();
-
-                    // Store in dictionary with the socket as the key
-                    if (playerDictionary.ContainsKey(serverClient))
-                        playerDictionary[serverClient] = newPlayer;
-                    else
-                        playerDictionary.Add(serverClient, newPlayer);
-
-                    // Add newly created Player to the members of the first room of the dungeon
-                    if (!myDungeon.GetStartRoom().GetPlayersInRoom().Contains(newPlayer))
-                        myDungeon.GetStartRoom().AddPlayer(ref newPlayer);
-
-
+                    // clientID increments after every new player is added, ensures a different new next clientName
                     String clientName = "client" + clientID;
-                    clientDictionary.Add(clientName, serverClient);
 
+                    // Gives the client its own clientName as a reference
                     SendClientName(serverClient, clientName);
-                    Thread.Sleep(500);
-                    SendClientList();
 
-                    clientID++;
+                    // Create a new player instance
+                    Player newPlayer = new Player(GetNameFromSocket(serverClient), new List<Item>());
+                    playerDictionary.Add(clientName, new PlayerInfo(newPlayer, serverClient));
+
+                    // Sanity check, then adds newly created Player to the members of the first room of the dungeon
+                    if (!myDungeon.StartRoom.PlayersInRoom.Contains(clientName))
+                        myDungeon.StartRoom.AddPlayer(clientName);
                 }
-                
+
+                Thread.Sleep(500);
+
+                // Update all players with up to date client list
+                SendClientList();
+
+                // Increment variable to ensure next clientName is different
+                clientID++;
+
+                // Initial room description message for client
+                String initialMessage = "\r\n\r\n" + myDungeon.DescribeRoom(myDungeon.StartRoom);
+                SendGameMessage(serverClient, "", initialMessage);
             }
         }
     }

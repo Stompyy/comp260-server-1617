@@ -10,3 +10,9 @@ C:\Users\Rich\Desktop\MUD\MudFinal\03.Chat system\Server\Dungeon\obj\Debug\Dunge
 C:\Users\Rich\Desktop\MUD\MudFinal\03.Chat system\Server\Dungeon\obj\Debug\Dungeon.csproj.CoreCompileInputs.cache
 C:\Users\Rich\Desktop\MUD\MudFinal\03.Chat system\Server\Dungeon\obj\Debug\Dungeon.dll
 C:\Users\Rich\Desktop\MUD\MudFinal\03.Chat system\Server\Dungeon\obj\Debug\Dungeon.pdb
+C:\Users\Rich\Desktop\comp260-server-1617\Server\Dungeon\bin\Debug\Dungeon.dll
+C:\Users\Rich\Desktop\comp260-server-1617\Server\Dungeon\bin\Debug\Dungeon.pdb
+C:\Users\Rich\Desktop\comp260-server-1617\Server\Dungeon\obj\Debug\Dungeon.csprojResolveAssemblyReference.cache
+C:\Users\Rich\Desktop\comp260-server-1617\Server\Dungeon\obj\Debug\Dungeon.csproj.CoreCompileInputs.cache
+C:\Users\Rich\Desktop\comp260-server-1617\Server\Dungeon\obj\Debug\Dungeon.dll
+C:\Users\Rich\Desktop\comp260-server-1617\Server\Dungeon\obj\Debug\Dungeon.pdb

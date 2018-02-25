@@ -37,6 +37,8 @@
             this.South = new System.Windows.Forms.Button();
             this.East = new System.Windows.Forms.Button();
             this.West = new System.Windows.Forms.Button();
+            this.LookAround = new System.Windows.Forms.Button();
+            this.Inventory = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // buttonSend
@@ -91,7 +93,7 @@
             // 
             // North
             // 
-            this.North.Location = new System.Drawing.Point(893, 329);
+            this.North.Location = new System.Drawing.Point(893, 321);
             this.North.Name = "North";
             this.North.Size = new System.Drawing.Size(75, 47);
             this.North.TabIndex = 6;
@@ -111,7 +113,7 @@
             // 
             // East
             // 
-            this.East.Location = new System.Drawing.Point(812, 376);
+            this.East.Location = new System.Drawing.Point(974, 370);
             this.East.Name = "East";
             this.East.Size = new System.Drawing.Size(75, 52);
             this.East.TabIndex = 8;
@@ -121,7 +123,7 @@
             // 
             // West
             // 
-            this.West.Location = new System.Drawing.Point(974, 376);
+            this.West.Location = new System.Drawing.Point(812, 370);
             this.West.Name = "West";
             this.West.Size = new System.Drawing.Size(75, 52);
             this.West.TabIndex = 9;
@@ -129,12 +131,34 @@
             this.West.UseVisualStyleBackColor = true;
             this.West.Click += new System.EventHandler(this.West_Click);
             // 
+            // LookAround
+            // 
+            this.LookAround.Location = new System.Drawing.Point(869, 481);
+            this.LookAround.Name = "LookAround";
+            this.LookAround.Size = new System.Drawing.Size(122, 46);
+            this.LookAround.TabIndex = 10;
+            this.LookAround.Text = "LookAround";
+            this.LookAround.UseVisualStyleBackColor = true;
+            this.LookAround.Click += new System.EventHandler(this.LookAround_Click);
+            // 
+            // Inventory
+            // 
+            this.Inventory.Location = new System.Drawing.Point(869, 88);
+            this.Inventory.Name = "Inventory";
+            this.Inventory.Size = new System.Drawing.Size(122, 36);
+            this.Inventory.TabIndex = 11;
+            this.Inventory.Text = "Inventory";
+            this.Inventory.UseVisualStyleBackColor = true;
+            this.Inventory.Click += new System.EventHandler(this.Inventory_Click);
+            // 
             // Form1
             // 
             this.AcceptButton = this.buttonSend;
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1088, 577);
+            this.Controls.Add(this.Inventory);
+            this.Controls.Add(this.LookAround);
             this.Controls.Add(this.West);
             this.Controls.Add(this.East);
             this.Controls.Add(this.South);
@@ -165,6 +189,8 @@
         private System.Windows.Forms.Button South;
         private System.Windows.Forms.Button East;
         private System.Windows.Forms.Button West;
+        private System.Windows.Forms.Button LookAround;
+        private System.Windows.Forms.Button Inventory;
     }
 }
 

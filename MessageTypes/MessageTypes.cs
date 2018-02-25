@@ -6,6 +6,15 @@ using System.IO;
 
 namespace MessageTypes
 {
+    enum MessageType
+    {
+        publicMessage,
+        privateMessage,
+        clientListMessage,
+        clientNameMessage,
+        gameMessage,
+        playerInitMessage
+    }
     public abstract class Msg
     {
         public Msg() { mID = 0; }
@@ -43,6 +52,10 @@ namespace MessageTypes
                     m = new GameMsg();
                     break;
 
+                case PlayerInitMsg.ID:
+                    m = new PlayerInitMsg();
+                    break;
+
                 default:
                     throw (new Exception());
             }
@@ -55,7 +68,7 @@ namespace MessageTypes
 
             return m;
         }
-    };
+    }
 
     public class PublicChatMsg : Msg
     {
@@ -81,7 +94,7 @@ namespace MessageTypes
         {
             msg = read.ReadString();
         }
-    };
+    }
 
     public class PrivateChatMsg : Msg
     {
@@ -107,7 +120,7 @@ namespace MessageTypes
             msg = read.ReadString();
             destination = read.ReadString();
         }
-    };
+    }
 
     public class ClientListMsg : Msg
     {
@@ -148,7 +161,7 @@ namespace MessageTypes
                 clientList.Add(read.ReadString());
             }
         }
-    };
+    }
 
 
     public class ClientNameMsg : Msg
@@ -175,7 +188,7 @@ namespace MessageTypes
         {
             name = read.ReadString();
         }
-    };
+    }
 
     public class GameMsg : Msg
     {
@@ -199,10 +212,41 @@ namespace MessageTypes
 
             return stream;
         }
+
         public override void ReadData(BinaryReader read)
         {
             msg = read.ReadString();
             destination = read.ReadString();
         }
-    };
+    }
+
+    public class PlayerInitMsg : Msg
+    {
+        public const int ID = 6;
+        public String msg;
+        //public String destination;
+
+        public PlayerInitMsg()
+        {
+            mID = ID;
+        }
+        public override MemoryStream WriteData()
+        {
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter write = new BinaryWriter(stream);
+            write.Write(ID);
+            write.Write(msg);
+            //write.Write(destination);
+
+            write.Close();
+
+            return stream;
+        }
+
+        public override void ReadData(BinaryReader read)
+        {
+            msg = read.ReadString();
+            //destination = read.ReadString();
+        }
+    }
 }
