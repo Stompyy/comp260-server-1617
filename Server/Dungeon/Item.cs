@@ -16,6 +16,11 @@ namespace Dungeon
             m_Description = description;
         }
 
+        public virtual String Use(ref Player player)
+        {
+            return "You should probably do that later.";
+        }
+
         private String m_Name;
         public String Name { get { return m_Name; } }// set { m_Name = value; } }
 
@@ -32,24 +37,46 @@ namespace Dungeon
     // Weapon class adds damage field to Item class
     public class Weapon : Item
     {
-        public Weapon(String name, float weight, float value, String description, float damage) : base (name, weight, value, description)
+        public Weapon(String name, float weight, float value, String description, int damage) : base (name, weight, value, description)
         {
             m_Damage = damage;
         }
 
-        private float m_Damage;
-        public float Damage { get {return m_Damage; } set {m_Damage = value; } }
+        private int m_Damage;
+        public int Damage { get {return m_Damage; } set {m_Damage = value; } }
     }
 
     // Armour class adds defense field to Item class
     public class Armour : Item
     {
-        public Armour(String name, float weight, float value, String description, float defense) : base (name, weight, value, description)
+        public Armour(String name, float weight, float value, String description, int armourClassModifier) : base (name, weight, value, description)
         {
-            m_Defense = defense;
+            m_ArmourClassModifier = armourClassModifier;
         }
 
-        private float m_Defense;
-        public float Defense { get { return m_Defense; } set { m_Defense = value; } }
+        private int m_ArmourClassModifier;
+        public int ArmourClassModifier { get { return m_ArmourClassModifier; } set { m_ArmourClassModifier = value; } }
+    }
+
+    // Health replenishing item
+    public class HealthItem : Item
+    {
+        public HealthItem(String name, float weight, float value, String description) : base(name, weight, value, description)
+        {
+
+        }
+
+        public override string Use(ref Player player)
+        {
+            // Refill health
+            player.HitPoints = player.MaxHitPoints;
+
+            // Remove from inventory
+            player.Inventory.Remove(this);
+
+            //throw new NotImplementedException();
+            return "The item heals you.\r\n\r\nYour Health is now full at " + player.MaxHitPoints;
+        }
+
     }
 }

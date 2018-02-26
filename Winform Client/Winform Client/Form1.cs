@@ -210,6 +210,15 @@ namespace Winform_Client
                                     }
                                     break;
 
+                                case PlayerDeadMsg.ID:
+                                    {
+                                        // Player is dead. Quit.
+                                        PlayerDeadMsg playerDeadMsg = (PlayerDeadMsg)m;
+                                        form.AddGameText(playerDeadMsg.msg);
+                                        form.bQuit = true;
+                                    }
+                                    break;
+
                                 default:
                                     break;
                             }

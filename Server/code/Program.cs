@@ -15,7 +15,7 @@ using Dungeon;
 namespace Server
 {
     // Struct binds a player instance to its socket for easy access from the playerDictionary
-    struct PlayerInfo
+    public struct PlayerInfo
     {
         public Player player;
         public Socket socket;
@@ -32,6 +32,9 @@ namespace Server
     {
         // Create a single instance of the dungeon for all players to use
         static DungeonClass myDungeon = new DungeonClass();
+
+        // Controls instance to parse client strings
+        static Controls controls = new Controls(ref myDungeon);
 
         // Dictionary stores all players and their appropriate socket in the PlayerInfo struct, with a string key
         static Dictionary<String, PlayerInfo> playerDictionary = new Dictionary<String, PlayerInfo>();
@@ -149,6 +152,22 @@ namespace Server
             }
         }
 
+        static void SendDeathMessage(Socket s, String msg)
+        {
+            PlayerDeadMsg gameMessage = new PlayerDeadMsg();
+            gameMessage.msg = msg;
+            MemoryStream outStream = gameMessage.WriteData();
+
+            try
+            {
+                s.Send(outStream.GetBuffer());
+            }
+            catch (System.Exception)
+            {
+
+            }
+        }
+
         static Socket GetSocketFromName(String name)
         {
             lock (playerDictionary)
@@ -180,7 +199,7 @@ namespace Server
             // Cast object argument back into a socket
             Socket chatClient = (Socket)socket;
 
-            // server console debug message
+            // Server console debug message
             Console.WriteLine("client receive thread for " + GetNameFromSocket(chatClient));
 
             // Create a new Player class instance
@@ -202,6 +221,8 @@ namespace Server
             // On new player instantiation, update all players with the new client list
             SendClientList();
 
+            // Initialise string that will recieve the message from the server
+            String sendMsg = "";
 
             while (bQuit == false)
             {
@@ -259,6 +280,19 @@ namespace Server
                                         // Get the string from the GameMsg class
                                         String formattedMsg = gameMessage.msg;
 
+                                        // Filter the incoming message for a reference to another player and store
+                                        // Empty player with otherwise unassignable name, this can be picked up in the controls checks
+                                        Player targetedOtherPlayer = null;// new Player("unassigned", new List<Item>());
+                                        String[] FormattedStringWords = formattedMsg.Split(' ');
+                                        foreach (String possibleName in FormattedStringWords)
+                                        {
+                                            if (playerDictionary.ContainsKey(possibleName))
+                                            {
+                                                targetedOtherPlayer = playerDictionary[possibleName].player;
+                                                break;
+                                            }
+                                        }
+
                                         // Get the sending client name, to be used as a dictionary key next, and to pass the String value
                                         String clientName = GetNameFromSocket(chatClient);
 
@@ -269,27 +303,126 @@ namespace Server
                                             Player tempPlayer = playerDictionary[clientName].player;
 
                                             // Update function of the DungeonClass instance. If moved, Updates the current room of the player instance, and the currentRoom occupency of the dungeon room
-                                            String sendMsg = myDungeon.Update(ref playerDictionary[clientName].player.GetCurrentRoomRef, ref tempPlayer, clientName, formattedMsg);
+                                            sendMsg = controls.Update(ref tempPlayer, ref targetedOtherPlayer, formattedMsg);
 
                                             // Console debug message
                                             Console.WriteLine(sendMsg);
 
-                                            // "Say" command will always return a sendMsg beginning with "Room chat:". If true then send message to all players in room
-                                            if (sendMsg.Substring(0, 10) == "Room chat:")
+                                            // Update dictionary variable
+                                            playerDictionary[clientName] = new PlayerInfo(tempPlayer, playerDictionary[clientName].socket);
+
+                                            // Parse the returned String from the controls for any server specific commands. Program.cs is the glue which holds the playerDictionary together.
+                                            // OUTBOUND STRING PARSING!!! Is this a good idea?
+
+                                            // Try/catch is needed to avoid crashing due to mismatched string sizes. i.e. comparing the first 14 characters of a 10 length string.
+
+                                            // "Say" command will always return a sendMsg beginning with "Room chat:". If true then send private message to all players in room
+                                            try
                                             {
-                                                foreach (String playerName in tempPlayer.GetCurrentRoomRef.PlayersInRoom)
+                                                if (sendMsg.Substring(0, 10) == "Room chat:")
                                                 {
-                                                    SendGameMessage(playerDictionary[playerName].socket, "", sendMsg);
+                                                    foreach (String playerName in tempPlayer.GetCurrentRoomRef.PlayersInRoom)
+                                                    {
+                                                        SendPrivateMessage(playerDictionary[playerName].socket, "", sendMsg);
+                                                    }
+                                                    break;
                                                 }
                                             }
-                                            else
+                                            catch
                                             {
-                                                // Update dictionary variable
-                                                playerDictionary[clientName] = new PlayerInfo(tempPlayer, playerDictionary[clientName].socket);
 
-                                                // Send the complete message to the player socket
-                                                SendGameMessage(chatClient, "", sendMsg);
                                             }
+                                            // if "give (Item) to (Player)" is parsed correctly then the returned sendMsg string will start "You give your ". This will then inform the recipient player
+                                            try
+                                            {
+                                                if (sendMsg.Substring(0, 14) == "You give your ")
+                                                {
+                                                    // Send the complete message to the player socket
+                                                    SendGameMessage(chatClient, "", sendMsg);
+
+                                                    // Send specific private message to target player's socket
+                                                    SendPrivateMessage(GetSocketFromName(targetedOtherPlayer.Name), "", clientName + " has given you a " + sendMsg.Split(' ')[3]);
+                                                    break;
+                                                }
+                                            }
+                                            catch (Exception)
+                                            {
+
+                                            }
+                                            // If "pickpocket" attempt has been correctly executed but not successfully performed then inform the targetedPlayer
+                                            try
+                                            {
+                                                if (sendMsg.Substring(0, 26) == "Pickpocket attempt failed.")
+                                                {
+                                                    // Send the complete message to the player socket
+                                                    SendGameMessage(chatClient, "", sendMsg);
+
+                                                    // Send specific private message to target player's socket
+                                                    SendGameMessage(GetSocketFromName(targetedOtherPlayer.Name), "", clientName + " has just tried to pickpocket you! They failed.");
+                                                    break;
+                                                }
+                                            }
+                                            catch (Exception)
+                                            {
+
+                                            }
+                                            // If you enjoy battling on screens, please feel free to try out 'BattleScreens: Multiplayer Shooter' on all iOS devices that it doesn't not sometimes work on!
+                                            // Do not refund
+                                            try
+                                            {
+                                                if (sendMsg.Substring(0, 8) == "<Battle>")
+                                                {
+                                                    // Send the complete message to both player's sockets
+                                                    SendGameMessage(chatClient, "", sendMsg);
+                                                    SendGameMessage(GetSocketFromName(targetedOtherPlayer.Name), "", sendMsg);
+                                                    break;
+                                                }
+                                            }
+                                            catch (Exception)
+                                            {
+                                            // Player Killed!
+                                            }
+                                            try
+                                            {
+                                                if (sendMsg.Substring(0, 11) == "You killed ")
+                                                {
+                                                    // Send the complete message to the player socket
+                                                    SendGameMessage(chatClient, "", sendMsg);
+
+                                                    // Tell killed player client to disconnect
+                                                    SendDeathMessage(GetSocketFromName(targetedOtherPlayer.Name), "Wasted.");
+
+                                                    // Lost the player message
+                                                    String output = targetedOtherPlayer.Name + " has been killed.";
+
+                                                    // Debug message to server console
+                                                    Console.WriteLine(output);
+
+                                                    // Inform the other players
+                                                    SendChatMessage(output);
+
+                                                    // playerDictionary is already locked
+
+                                                    // Sanity check, then remove player name from the current rooms list of currently occupying players names
+                                                    if (playerDictionary[targetedOtherPlayer.Name].player.GetCurrentRoomRef.PlayersInRoom.Contains(targetedOtherPlayer.Name))
+                                                        playerDictionary[targetedOtherPlayer.Name].player.GetCurrentRoomRef.RemovePlayer(targetedOtherPlayer.Name);
+
+                                                    // Sanity check, then remove player information from playerDictionary
+                                                    if (playerDictionary.ContainsKey(targetedOtherPlayer.Name))
+                                                        playerDictionary.Remove(targetedOtherPlayer.Name);
+
+
+                                                    // Update all other players current client list
+                                                    SendClientList();
+                                                    break;
+                                                }
+                                            }
+                                            catch (Exception)
+                                            {
+
+                                            }
+                                            // If sendMsg conditions have not returned true for any of the ablove specific cases, then send the message to the player socket
+                                            SendGameMessage(chatClient, "", sendMsg);
                                         }
                                     }
                                     break;
@@ -310,8 +443,10 @@ namespace Server
                                         // Lock it like it's hot
                                         lock (playerDictionary)
                                         {
+                                            // Temporary variable to assign value outside of dictionary
                                             Player tempPlayer = playerDictionary[clientName].player;
                                             tempPlayer.Init(processedCharacterSheet);
+
                                             // Update dictionary variable
                                             playerDictionary[clientName] = new PlayerInfo(tempPlayer, playerDictionary[clientName].socket);
 
@@ -343,13 +478,18 @@ namespace Server
                     // Always lock the list!!!
                     lock (playerDictionary)
                     {
-                        // Sanity check, then remove player name from the current rooms list of currently occupying players names
-                        if (playerDictionary[GetNameFromSocket(chatClient)].player.GetCurrentRoomRef.PlayersInRoom.Contains(GetNameFromSocket(chatClient)))
-                            playerDictionary[GetNameFromSocket(chatClient)].player.GetCurrentRoomRef.RemovePlayer(GetNameFromSocket(chatClient));
+                        try
+                        {
+                            // Sanity check, then remove player name from the current rooms list of currently occupying players names
+                            if (playerDictionary[GetNameFromSocket(chatClient)].player.GetCurrentRoomRef.PlayersInRoom.Contains(GetNameFromSocket(chatClient)))
+                                playerDictionary[GetNameFromSocket(chatClient)].player.GetCurrentRoomRef.RemovePlayer(GetNameFromSocket(chatClient));
 
-                        // Sanity check, then remove player information from playerDictionary
-                        if (playerDictionary.ContainsKey(GetNameFromSocket(chatClient)))
-                            playerDictionary.Remove(GetNameFromSocket(chatClient));
+                            // Sanity check, then remove player information from playerDictionary
+                            if (playerDictionary.ContainsKey(GetNameFromSocket(chatClient)))
+                                playerDictionary.Remove(GetNameFromSocket(chatClient));
+                        }
+                        catch (Exception)
+                        { }
                     }
 
                     // Update all other players current client list

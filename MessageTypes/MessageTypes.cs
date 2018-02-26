@@ -56,6 +56,10 @@ namespace MessageTypes
                     m = new PlayerInitMsg();
                     break;
 
+                case PlayerDeadMsg.ID:
+                    m = new PlayerDeadMsg();
+                    break;
+
                 default:
                     throw (new Exception());
             }
@@ -224,7 +228,6 @@ namespace MessageTypes
     {
         public const int ID = 6;
         public String msg;
-        //public String destination;
 
         public PlayerInitMsg()
         {
@@ -236,17 +239,43 @@ namespace MessageTypes
             BinaryWriter write = new BinaryWriter(stream);
             write.Write(ID);
             write.Write(msg);
-            //write.Write(destination);
 
             write.Close();
 
             return stream;
         }
 
+
         public override void ReadData(BinaryReader read)
         {
             msg = read.ReadString();
-            //destination = read.ReadString();
+        }
+    }
+
+        public class PlayerDeadMsg : Msg
+        {
+            public const int ID = 7;
+            public String msg;
+
+            public PlayerDeadMsg()
+            {
+                mID = ID;
+            }
+            public override MemoryStream WriteData()
+            {
+                MemoryStream stream = new MemoryStream();
+                BinaryWriter write = new BinaryWriter(stream);
+                write.Write(ID);
+                write.Write(msg);
+
+                write.Close();
+
+                return stream;
+            }
+
+        public override void ReadData(BinaryReader read)
+        {
+            msg = read.ReadString();
         }
     }
 }
