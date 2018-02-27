@@ -7,14 +7,27 @@ using System.Net.Sockets;
 
 namespace Dungeon
 {
+
     // Controls class parses control messages sent from the client and alters the state of the dungeon and the player
     public class Controls
     {
+        static Item GetItemFomListByName(String itemName, List<Item> itemList)
+        {
+            foreach (Item item in itemList)
+            {
+                if (item.Name == itemName)
+                {
+                    return item;
+                }
+            }
+            return null;
+        }
+    
         // Simple constructor
-        public Controls(ref DungeonClass dungeon) { m_Dungeon = dungeon; }
-        private DungeonClass m_Dungeon;
+        public Controls(ref ForestCastleDungeon dungeon) { m_Dungeon = dungeon; }
+        private ForestCastleDungeon m_Dungeon;
 
-        // Random number generator to use as dice rolls for certain gameplay elements
+        // Single Random number stream to use as dice rolls for certain gameplay elements
         Random rand = new Random();
 
         // Update function
@@ -35,18 +48,20 @@ namespace Dungeon
                 case "help":
                     outputMessage = "\r\nCommands are ....\r\n";
                     outputMessage += "help - for this screen\r\n";
+                    outputMessage += "stats - to view your character sheet\r\n";
                     outputMessage += "look around - to look around\r\n";
                     outputMessage += "look at inventory - to look at inventory\r\n";
                     outputMessage += "look at ... - to return a description of ...\r\n";
                     outputMessage += "pick up ... - to add an item in the room to your inventory\r\n";
-                    outputMessage += "drop ... - to drop an item from your inventory into the room\r\n";
+                    outputMessage += "drop ... - to drop an unequipped item from your inventory into the room\r\n";
                     outputMessage += "use ... - to use an item in your inventory. If it can be used\r\n";
                     outputMessage += "equip ... - to equip a weapon or armour item\r\n";
+                    outputMessage += "unequip ... - to unequip a weapon or armour item\r\n";
                     outputMessage += "give ... to ... - to give an item in your inventory to another player in the room\r\n";
                     outputMessage += "say ... - to message all players in your current room\r\n";
-                    outputMessage += "pickpocket ... - to attempt to pickpocket a player in your current room based on a dexterity check";
+                    outputMessage += "pickpocket ... - to attempt to pickpocket a player in your current room based on a dexterity check\r\n";
                     outputMessage += "talk to ... - to talk to an NPC in the room\r\n";
-                    outputMessage += "go [north | south | east | west]  - to travel between locations";
+                    outputMessage += "go [north | south | east | west]  - to travel between locations\r\n";
                     outputMessage += "attack ... - to attack another player";
 
                     break;
@@ -140,13 +155,18 @@ namespace Dungeon
                     }
 
                 case "say":
-                    outputMessage = "Room chat: <" + playerName + "> ";
+                    outputMessage = "<Room chat> <" + playerName + "> ";
 
                     for (var i = 1; i < input.Length; i++)
                     {
                         outputMessage += input[i] + " ";
                     }
                     break;
+
+                case "stats":
+                    {
+                        return player.GetStats();
+                    }
 
                 case "talk":
                     if (currentRoom.NPCList.Count == 0)
@@ -168,6 +188,25 @@ namespace Dungeon
                     catch (Exception)
                     {
                         return "Try to 'talk to ...' NPCs instead.";
+                    }
+
+                case "eat":
+                    try
+                    {
+                        String itemName = input[1].ToLower();
+                        foreach (Item item in player.Inventory)
+                        {
+                            if (item.Name == itemName)
+                            {
+                                outputMessage = item.Use(ref player);
+                                return outputMessage;
+                            }
+                        }
+                        return "You do not have a " + input[1].ToLower() + " in your inventory.";
+                    }
+                    catch (Exception)
+                    {
+                        return "What would you like to eat?";
                     }
 
                 case "use":
@@ -192,13 +231,21 @@ namespace Dungeon
                 case "drop":
                     try
                     {
-                        if (player.DropItem(input[1].ToLower(), ref currentRoom))
+                        // Check that the requested item is not currently equipped
+                        if (GetItemFomListByName(input[1].ToLower(), player.EquippedItems) != null)
                         {
-                            return "You drop the " + input[1].ToLower() + " on the floor.";
+                            return "You will have to unequip the " + input[1].ToLower() + " first.";
                         }
-                        else
-                        {
-                            return "You need to have a " + input[1].ToLower() + " if you want to drop it.";
+                        else {
+                            // Function also returns if item is available
+                            if (player.DropItem(input[1].ToLower(), ref currentRoom))
+                            {
+                                return "You drop the " + input[1].ToLower() + " on the floor.";
+                            }
+                            else
+                            {
+                                return "You need to have a " + input[1].ToLower() + " if you want to drop it.";
+                            }
                         }
                     }
                     catch (Exception)
@@ -209,8 +256,10 @@ namespace Dungeon
                 case "pick":
                     try
                     {
+                        // multi word parsing
                         if (input[1].ToLower() == "up")
                         {
+                            // Function also returns if item is available
                             if (currentRoom.PickUp(ref player, input[2].ToLower()))
                                 return "\r\nYou pick up the " + input[2].ToLower() + " and add it to your inventory.";
                             else
@@ -274,6 +323,41 @@ namespace Dungeon
                         return "What would you like to equip?";
                     }
 
+                case "unequip":
+                    if (player.EquippedItemsCount > 0)
+                    {
+                        String itemName = input[1].ToLower();
+                        try
+                        {
+                            foreach (Item weapon in player.EquippedItems)
+                            {
+                                if (weapon.Name == input[1].ToLower())
+                                {
+                                    player.UnequipWeapon((Weapon)weapon);
+                                    return "You unequip the " + input[1].ToLower() + ".\r\n\r\nUnarmed attack damage is 1d" + player.AttackDamage + ".";
+                                }
+                            }
+                        }
+                        catch { }
+                        try
+                        {
+                            foreach (Item armour in player.EquippedItems)
+                            {
+                                if (armour.Name == input[1].ToLower())
+                                {
+                                    player.UnequipArmour((Armour)armour);
+                                    return "You Unequip the " + input[1].ToLower() + ".\r\n\r\nYour armour class is now " + player.ArmourClass + ".";
+                                }
+                            }
+                        }
+                        catch { }
+                        return "You do not have a " + input[1].ToLower() + " equipped.";
+                    }
+                    else
+                    {
+                        return "You have no equipped items.";
+                    }
+
                 case "give":
                     try
                     {
@@ -286,9 +370,17 @@ namespace Dungeon
                                 // Check player is not trying to give things to themselves
                                 if (targetedPlayer != player)
                                 {
+                                    foreach (Item item in player.EquippedItems)
+                                    {
+                                        if (item.Name == input[1])
+                                        {
+                                            return "You will have to unequip that item first.";
+                                        }
+                                    }
                                     if (player.GiveItem(input[1], ref targetedPlayer))
                                     {
-                                        return "You give your " + input[1] + " to " + targetedPlayer.Name;
+                                        
+                                        return "@<Gift> You give your " + input[1] + " to " + targetedPlayer.Name + ".@<Gift> " + player.Name + " has given you a " + input[1] + ".";
                                     }
                                     else
                                     {
@@ -317,10 +409,11 @@ namespace Dungeon
 
                 case "pickpocket":
                     // Check there is someone else in the room to try and pickpocket
-                    if (currentRoom.PlayersInRoom.Count == 1)
+                    if (currentRoom.PlayersInRoom.Count == 1 && currentRoom.NPCList.Count == 0)
                     {
-                        return "There are no other players here to try and pickpocket.";
+                        return "There is noone here to try and pickpocket.";
                     }
+
                     // If there is at least another word after that
                     if (input.Length > 1)
                     {
@@ -331,7 +424,7 @@ namespace Dungeon
                             if (targetedPlayer != player)
                             {
                                 // Pickpocket function handles the success/fail and returns the appropriate String message
-                                return player.Pickpocket(ref targetedPlayer, rand);
+                                return player.PickPocketPlayer(ref targetedPlayer, rand);
                             }
                             else
                             {
@@ -340,6 +433,14 @@ namespace Dungeon
                         }
                         else
                         {
+                            // Check for NPC pickpocketing
+                            foreach (Character character in player.GetCurrentRoomRef.NPCList)
+                            {
+                                if (character.Name == input[1])
+                                {
+                                    return player.PickpocketNPC(character, rand);
+                                }
+                            }
                             return "There is noone with that name in this room with you.";
                         }
                     }

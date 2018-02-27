@@ -31,7 +31,8 @@ namespace Server
     class Program
     {
         // Create a single instance of the dungeon for all players to use
-        static DungeonClass myDungeon = new DungeonClass();
+        //static DungeonClass myDungeon = new DungeonClass();
+        static ForestCastleDungeon myDungeon = new ForestCastleDungeon();
 
         // Controls instance to parse client strings
         static Controls controls = new Controls(ref myDungeon);
@@ -191,6 +192,18 @@ namespace Server
 
             return null;
         }
+
+        static void SendSplitMessage(Socket thisPlayerSocket, Socket secondPlayerSocket, String message)
+        {
+            // '@' symbool is used to split the output String between thisPlayer destined message and secondPlayer destined message
+            String[] splitOutputMessage = message.Split('@');
+
+            // Send the first part of the message to the this player socket - Split function requires a 1 based array accessor here.
+            SendGameMessage(thisPlayerSocket, "", splitOutputMessage[1]);
+
+            // Send second part as a private message to the second player's socket
+            SendPrivateMessage(secondPlayerSocket, "", splitOutputMessage[2]);
+        }
         
         static void ReceiveClientProcess(Object socket)
         {
@@ -282,7 +295,7 @@ namespace Server
 
                                         // Filter the incoming message for a reference to another player and store
                                         // Empty player with otherwise unassignable name, this can be picked up in the controls checks
-                                        Player targetedOtherPlayer = null;// new Player("unassigned", new List<Item>());
+                                        Player targetedOtherPlayer = null;
                                         String[] FormattedStringWords = formattedMsg.Split(' ');
                                         foreach (String possibleName in FormattedStringWords)
                                         {
@@ -314,12 +327,14 @@ namespace Server
                                             // Parse the returned String from the controls for any server specific commands. Program.cs is the glue which holds the playerDictionary together.
                                             // OUTBOUND STRING PARSING!!! Is this a good idea?
 
+                                            String[] splitOutputMessage = { };
+
                                             // Try/catch is needed to avoid crashing due to mismatched string sizes. i.e. comparing the first 14 characters of a 10 length string.
 
                                             // "Say" command will always return a sendMsg beginning with "Room chat:". If true then send private message to all players in room
                                             try
                                             {
-                                                if (sendMsg.Substring(0, 10) == "Room chat:")
+                                                if (sendMsg.Substring(0, 11) == "<Room chat>")
                                                 {
                                                     foreach (String playerName in tempPlayer.GetCurrentRoomRef.PlayersInRoom)
                                                     {
@@ -332,16 +347,13 @@ namespace Server
                                             {
 
                                             }
-                                            // if "give (Item) to (Player)" is parsed correctly then the returned sendMsg string will start "You give your ". This will then inform the recipient player
+                                            // if "give (Item) to (Player)" is parsed correctly then the returned sendMsg string will start ""@<Gift>"". This will then inform the recipient player
                                             try
                                             {
-                                                if (sendMsg.Substring(0, 14) == "You give your ")
+                                                if (sendMsg.Substring(0, 7) == "@<Gift>")
                                                 {
-                                                    // Send the complete message to the player socket
-                                                    SendGameMessage(chatClient, "", sendMsg);
-
-                                                    // Send specific private message to target player's socket
-                                                    SendPrivateMessage(GetSocketFromName(targetedOtherPlayer.Name), "", clientName + " has given you a " + sendMsg.Split(' ')[3]);
+                                                    // Splits the message and sends each part to the corresponding socket
+                                                    SendSplitMessage(chatClient, GetSocketFromName(targetedOtherPlayer.Name), sendMsg);
                                                     break;
                                                 }
                                             }
@@ -352,13 +364,10 @@ namespace Server
                                             // If "pickpocket" attempt has been correctly executed but not successfully performed then inform the targetedPlayer
                                             try
                                             {
-                                                if (sendMsg.Substring(0, 26) == "Pickpocket attempt failed.")
+                                                if (sendMsg.Substring(0, 14) == "@<PickPocket> ")
                                                 {
-                                                    // Send the complete message to the player socket
-                                                    SendGameMessage(chatClient, "", sendMsg);
-
-                                                    // Send specific private message to target player's socket
-                                                    SendGameMessage(GetSocketFromName(targetedOtherPlayer.Name), "", clientName + " has just tried to pickpocket you! They failed.");
+                                                    // Splits the message and sends each part to the corresponding socket
+                                                    SendSplitMessage(chatClient, GetSocketFromName(targetedOtherPlayer.Name), sendMsg);
                                                     break;
                                                 }
                                             }
@@ -366,7 +375,7 @@ namespace Server
                                             {
 
                                             }
-                                            // If you enjoy battling on screens, please feel free to try out 'BattleScreens: Multiplayer Shooter' on all iOS devices that it doesn't not sometimes work on!
+                                            // If you enjoy battling on screens, please feel free to try out 'BattleScreens: Multiplayer Shooter' on all iOS devices that it doesn't not sometimes work on.
                                             // Do not refund
                                             try
                                             {
@@ -380,8 +389,8 @@ namespace Server
                                             }
                                             catch (Exception)
                                             {
-                                            // Player Killed!
                                             }
+                                            // Player Killed!
                                             try
                                             {
                                                 if (sendMsg.Substring(0, 11) == "You killed ")
@@ -421,7 +430,44 @@ namespace Server
                                             {
 
                                             }
-                                            // If sendMsg conditions have not returned true for any of the ablove specific cases, then send the message to the player socket
+                                            // WIN STATE!!!Now it's a game
+                                            try
+                                            {
+                                                if (sendMsg.Substring(0, 5) == "<Win>")
+                                                {
+                                                    // Send the complete message to the player socket
+                                                    SendDeathMessage(chatClient, sendMsg);
+
+                                                    // Lost the player message
+                                                    String output = clientName + " has reached the end!";
+
+                                                    // Debug message to server console
+                                                    Console.WriteLine(output);
+
+                                                    // Inform the other players
+                                                    SendChatMessage(output);
+
+                                                    // playerDictionary is already locked
+
+                                                    // Sanity check, then remove player name from the current rooms list of currently occupying players names
+                                                    if (playerDictionary[targetedOtherPlayer.Name].player.GetCurrentRoomRef.PlayersInRoom.Contains(targetedOtherPlayer.Name))
+                                                        playerDictionary[targetedOtherPlayer.Name].player.GetCurrentRoomRef.RemovePlayer(targetedOtherPlayer.Name);
+
+                                                    // Sanity check, then remove player information from playerDictionary
+                                                    if (playerDictionary.ContainsKey(targetedOtherPlayer.Name))
+                                                        playerDictionary.Remove(targetedOtherPlayer.Name);
+
+                                                    // Update all other players current client list
+                                                    SendClientList();
+
+                                                    break;
+                                                }
+                                            }
+                                            catch (Exception)
+                                            {
+
+                                            }
+                                            // If sendMsg conditions have not returned true for any of the above specific cases, then send the message to the player socket
                                             SendGameMessage(chatClient, "", sendMsg);
                                         }
                                     }
@@ -530,7 +576,7 @@ namespace Server
                 lock (playerDictionary)
                 {
                     // clientID increments after every new player is added, ensures a different new next clientName
-                    String clientName = "client" + clientID;
+                    String clientName = "player" + clientID;
 
                     // Gives the client its own clientName as a reference
                     SendClientName(serverClient, clientName);

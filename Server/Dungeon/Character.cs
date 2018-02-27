@@ -38,6 +38,7 @@ namespace Dungeon
         {
             m_Name = name;
             m_Inventory = startItems;
+            m_HitPoints = m_MaxHitPoints;
         }
 
         // No point in a for loop here as would have to do the same amount of work assigning the Player member variables to an array to loop through first
@@ -50,9 +51,10 @@ namespace Dungeon
             m_Wisdom = Convert.ToInt32(characterSheet[4]);
             m_Charisma = Convert.ToInt32(characterSheet[5]);
 
-            // D&D style set Attack modifer and Armour class
+            // D&D style set Attack modifer (Strength), Armour class (Dexterity, and Hit points (Constitution)
             AdjustAbilityModifier(m_Strength, ref m_AttackModifier);
             AdjustAbilityModifier(m_Dexterity, ref m_ArmourClass);
+            AdjustAbilityModifier(m_Constitution, ref m_MaxHitPoints);
         }
 
         // D&D style character sheet
@@ -66,16 +68,33 @@ namespace Dungeon
             m_Charisma = 10;
 
         public int Strength { get { return m_Strength; } }
-        public int Dexterity { get { return m_Dexterity; } }
+        public int Dexterity { get { return m_Dexterity; } set { m_Dexterity = value; } }
         public int Constitution { get { return m_Constitution; } }
         public int Intelligence { get { return m_Intelligence; } }
         public int Wisdom { get { return m_Wisdom; } }
         public int Charisma { get { return m_Charisma; } }
 
-        // Standard health float
-        private int m_HitPoints = 20;
-        public int HitPoints { get { return m_HitPoints; } set { m_HitPoints = value; } }
+        public String GetStats()
+        {
+            String outputMessage = Name + ": character sheet:\r\n\r\n";
+            outputMessage += "Strength: " + m_Strength.ToString() + "\r\n";
+            outputMessage += "Dexterity: " + m_Dexterity.ToString() + "\r\n";
+            outputMessage += "Constitution: " + m_Constitution.ToString() + "\r\n";
+            outputMessage += "Intelligence: " + m_Intelligence.ToString() + "\r\n";
+            outputMessage += "Wisdom: " + m_Wisdom.ToString() + "\r\n";
+            outputMessage += "Charisma: " + m_Charisma.ToString() + "\r\n\r\n";
+            outputMessage += "Hitpoints: " + m_HitPoints + "\r\n";
+            outputMessage += "Armour class: " + m_ArmourClass + "\r\n";
+            outputMessage += "AttackModifier: " + m_AttackModifier + "\r\n";
+            outputMessage += "Attack damage: 1d" + AttackDamage;
+            return outputMessage;
+        }
+
+        // Standard health floats
+        private int m_MaxHitPoints = 20;
         public int MaxHitPoints { get; set; } = 20;
+        private int m_HitPoints;
+        public int HitPoints { get { return m_HitPoints; } set { m_HitPoints = value; } }
         public int ApplyDamage(int damage) { m_HitPoints -= damage; return m_HitPoints; }
 
         // D&D style attack modifier
@@ -83,6 +102,7 @@ namespace Dungeon
         public int AttackModifier { get { return m_AttackModifier; } }
 
         // Damage. Default damage 1d3 for unarmed combat
+        private int m_UnarmedAttackDamage = 3;
         private int m_AttackDamage = 3;
         public int AttackDamage { get { return m_AttackDamage; } set { m_AttackDamage = value; } }
 
@@ -127,18 +147,49 @@ namespace Dungeon
             return false;
         }
 
+        // Keeps track of equipped weapons and armour
+        private int m_EquippedItemsCount = 0;
+        public int EquippedItemsCount { get { return m_EquippedItemsCount; } set { m_EquippedItemsCount = value; } }
+        private List<Item> m_EquippedItemList = new List<Item>();
+        public List<Item> EquippedItems { get { return m_EquippedItemList; } }
+
         // Equip a weapon and update the attack damage
         public void EquipWeapon(Weapon weapon)
         {
+            EquippedItemsCount += 1;
+            m_EquippedItemList.Add(weapon);
             AttackDamage = weapon.Damage;
         }
 
         // Equip armour
         public void EquipArmour(Armour armour)
         {
+            EquippedItemsCount += 1;
+            m_EquippedItemList.Add(armour);
+
             // Have to reset the AC first in case already have it modified. 1 piece of armour at a time here.
             AdjustAbilityModifier(m_Dexterity, ref m_ArmourClass);
             m_ArmourClass += armour.ArmourClassModifier;
+        }
+
+        // Unequip weapon
+        public void UnequipWeapon(Weapon weapon)
+        {
+            EquippedItemsCount -= 1;
+            m_EquippedItemList.Remove(weapon);
+
+            // Default unarmed attack damage
+            AttackDamage = m_UnarmedAttackDamage;
+        }
+
+        // Unequip armour
+        public void UnequipArmour(Armour armour)
+        {
+            EquippedItemsCount -= 1;
+            m_EquippedItemList.Remove(armour);
+
+            // Have to reset the AC. 1 piece of armour at a time here.
+            AdjustAbilityModifier(m_Dexterity, ref m_ArmourClass);
         }
     }
 
@@ -156,12 +207,12 @@ namespace Dungeon
         public Room CurrentRoom { set { m_CurrentRoom = value; } }
 
         // Pickpocket another player function
-        public String Pickpocket(ref Player targetPlayer, Random rand)
+        public String PickPocketPlayer(ref Player targetPlayer, Random rand)
         {
             // Check target player has something to steal
-            if (targetPlayer.Inventory.Count == 0)
+            if (targetPlayer.Inventory.Count - targetPlayer.EquippedItemsCount == 0)
             {
-                return targetPlayer.Name + " has nothing in their inventory.";
+                return targetPlayer.Name + " has nothing unequipped in their inventory.";
             }
             // Not D&D method but quite good substitute. D&D seems to rely more upon perception and situational bonuses given by DM
             // Rolls a dice with minimum 1, and maximum m_Dexterityy.
@@ -171,8 +222,11 @@ namespace Dungeon
             // If Player roll is highest then success
             if (playerDexRoll > targetSavingRoll)
             {
-                // Choose a random item in the targets inventory
-                Item stolenItem = targetPlayer.Inventory[rand.Next(0, targetPlayer.Inventory.Count - 1)];
+                Item stolenItem = null;
+
+                // Choose a random item in the targets inventory that is not equipped. Found a use for a do while loop!
+                do { stolenItem = targetPlayer.Inventory[rand.Next(0, targetPlayer.Inventory.Count - 1)]; }
+                while (targetPlayer.EquippedItems.Contains(stolenItem));
 
                 // Update each player's inventory
                 Inventory.Add(stolenItem);
@@ -180,7 +234,36 @@ namespace Dungeon
                 return "Success! You pickpocket " + targetPlayer.Name + " and steal a " + stolenItem.Name + ".\r\n\r\nRoll: " + playerDexRoll + "\r\nSave: "+ targetSavingRoll;
             }
             // Server will pick up on this message when sending the message back to the player client, and inform the targeted player
-            return "Pickpocket attempt failed. " + targetPlayer.Name + " slowly turns round and looks at you. They know what you have just tried to do.\r\n\r\nRoll: " + playerDexRoll + "\r\nSave: " + targetSavingRoll;
+            return "@<PickPocket> attempt failed. " + targetPlayer.Name + " slowly turns round and looks at you. They know what you have just tried to do.\r\n\r\nRoll: " + playerDexRoll + "\r\nSave: " + targetSavingRoll + "@<PickPocket> " + Name + " has just tried to pickpocket you! They failed.";
+        }
+
+        // Pickpocket an NPC function. Slightly different to pickPocketPlayer function in return message and static instance altering. i.e. if you steal an item from an NPC, then it will still be available to steal by other players
+        public String PickpocketNPC(Character targetNPC, Random rand)
+        {
+            // Check target NPC has something to steal
+            if (targetNPC.Inventory.Count - targetNPC.EquippedItemsCount == 0)
+            {
+                return targetNPC.Name + " has nothing unequipped in their inventory.";
+            }
+            // Not D&D method but quite good substitute. D&D seems to rely more upon perception and situational bonuses given by DM
+            // Rolls a dice with minimum 1, and maximum m_Dexterityy.
+            int playerDexRoll = rand.Next(1, Dexterity);
+            int targetSavingRoll = rand.Next(1, targetNPC.Dexterity);
+
+            // If Player roll is highest then success
+            if (playerDexRoll > targetSavingRoll)
+            {
+                Item stolenItem = null;
+
+                // Choose a random item in the targets inventory that is not equipped. Found a use for a do while loop!
+                do { stolenItem = targetNPC.Inventory[rand.Next(0, targetNPC.Inventory.Count - 1)]; }
+                while (targetNPC.EquippedItems.Contains(stolenItem));
+
+                // Update player's inventory
+                Inventory.Add(stolenItem);
+                return "Success! You pickpocket " + targetNPC.Name + " and steal a " + stolenItem.Name + ".\r\n\r\nRoll: " + playerDexRoll + "\r\nSave: " + targetSavingRoll;
+            }
+            return "<PickPocket> attempt failed. " + targetNPC.Name + " slowly turns round and looks at you. They know what you have just tried to do.\r\n\r\nRoll: " + playerDexRoll + "\r\nSave: " + targetSavingRoll;
         }
 
         public String FightPlayer(ref Player attackedPlayer, Random rand)

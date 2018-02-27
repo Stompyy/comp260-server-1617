@@ -14,15 +14,20 @@ namespace Dungeon
         // Item instantiation
         Item grog = new Item("grog", 0.5f, 4.0f, "Ah sweet grog. I love you grog.");
 
-        HealthItem potion = new HealthItem("potion", 1.0f, 20.0f, "This potion will replenish your health.");
+        static HealthItem potion = new HealthItem("potion", 1.0f, 20.0f, "This potion will replenish your health.");
+        static HealthItem sweetRoll = new HealthItem("sweetroll", 2.0f, 3.0f, "Wait what game is this?");
+        static HealthItem egg = new HealthItem("egg", 0.1f, 5.0f, "There is an angry chicken somewhere. The egg looks tasty.");
 
         Weapon club = new Weapon("club", 2.0f, 1.0f, "This is a large stick. Or a small branch.", 5);
-        static Weapon sword = new Weapon("sword", 5.0f, 100.0f, "This is a large sword. It will kill easily. Have fun.", 8);
+        Weapon sword = new Weapon("sword", 5.0f, 100.0f, "This is a large sword. It will kill easily. Have fun.", 8);
+        Weapon masterSword = new Weapon("mastersword", 3.0f, 120.0f, "There is an image of the triforce on the hilt.", 8);
+        static Weapon busterSword = new Weapon("bustersword", 7.0f, 150.0f, "This sword is much larger than you. It can hold three materia.", 12);
 
-        Armour shield = new Armour("shield", 5.0f, 20.0f, "It really is a shield.", 4);
+        Armour shield = new Armour("shield", 5.0f, 20.0f, "It is wildly over powered.", 4);
+        Armour fullPlate = new Armour("fullplate", 50.0f, 100.0f, "It is so bulky you don't think you can even hold a shield at the same time.", 6);
 
-        Friendly guard = new Friendly("guard", new List<Item> { sword }, "The guard looks friendly.", "<guard> Beware of the monsters ahead. The chicken is alright though. Here, take this sword. \r\n\r\n\r\nThe guard gives you a sword.");
-        Friendly chicken = new Friendly("chicken", new List<Item>(), "The chicken looks at you.", "The chicken says nothing. It looks angry.");
+        Friendly guard = new Friendly("guard", new List<Item> { busterSword, potion }, "The guard looks friendly.", "<guard> Beware of the monsters ahead. The chicken is alright though. You will want a sword soon though.");
+        Friendly chicken = new Friendly("chicken", new List<Item> { egg }, "The chicken looks back at you.", "The chicken says nothing. It looks angry.");
 
         public void Init()
         {
@@ -95,6 +100,18 @@ namespace Dungeon
                 room.south = "Room 1";
                 room.east = "Room 4";
                 roomMap.Add(room.name, room);
+            }
+
+            {
+                var endRoom = new Room(
+                    "End Room!",
+                    "The final room, congratulations!",
+                    new List<Item>(),
+                    new List<NPC>()
+                    );
+                //...
+                //...
+                //...
             }
             
             // Initialise the start room for all Player instances

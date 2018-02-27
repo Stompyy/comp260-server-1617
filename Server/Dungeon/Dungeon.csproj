@@ -43,6 +43,7 @@
   <ItemGroup>
     <Compile Include="Controls.cs" />
     <Compile Include="Dungeon.cs" />
+    <Compile Include="ForestCastleDungeon.cs" />
     <Compile Include="Item.cs" />
     <Compile Include="Character.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
