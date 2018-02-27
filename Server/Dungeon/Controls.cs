@@ -7,7 +7,6 @@ using System.Net.Sockets;
 
 namespace Dungeon
 {
-
     // Controls class parses control messages sent from the client and alters the state of the dungeon and the player
     public class Controls
     {
@@ -516,31 +515,31 @@ namespace Dungeon
                     break;
 
                 case "go":
-                    // is arg[1] sensible?
+                    // Movement
                     if ((input[1].ToLower() == "north") && (currentRoom.north != null))
                     {
-                        m_Dungeon.UpdateRoom(ref currentRoom, playerName, currentRoom.north);
+                        outputMessage = m_Dungeon.UpdateRoom(ref currentRoom, ref player, currentRoom.north);
                         outputMessage += m_Dungeon.DescribeRoom(currentRoom);
                     }
                     else
                     {
                         if ((input[1].ToLower() == "south") && (currentRoom.south != null))
                         {
-                            m_Dungeon.UpdateRoom(ref currentRoom, playerName, currentRoom.south);
+                            outputMessage = m_Dungeon.UpdateRoom(ref currentRoom, ref player, currentRoom.south);
                             outputMessage += m_Dungeon.DescribeRoom(currentRoom);
                         }
                         else
                         {
                             if ((input[1].ToLower() == "east") && (currentRoom.east != null))
                             {
-                                m_Dungeon.UpdateRoom(ref currentRoom, playerName, currentRoom.east);
+                                outputMessage = m_Dungeon.UpdateRoom(ref currentRoom, ref player, currentRoom.east);
                                 outputMessage += m_Dungeon.DescribeRoom(currentRoom);
                             }
                             else
                             {
                                 if ((input[1].ToLower() == "west") && (currentRoom.west != null))
                                 {
-                                    m_Dungeon.UpdateRoom(ref currentRoom, playerName, currentRoom.west);
+                                    outputMessage = m_Dungeon.UpdateRoom(ref currentRoom, ref player, currentRoom.west);
                                     outputMessage += m_Dungeon.DescribeRoom(currentRoom);
                                 }
                                 else

@@ -16,6 +16,7 @@ namespace Dungeon
             m_Description = description;
         }
 
+        // Overridden in items with use functionality
         public virtual String Use(ref Player player)
         {
             return "You should probably do that later.";
@@ -24,9 +25,11 @@ namespace Dungeon
         private String m_Name;
         public String Name { get { return m_Name; } }// set { m_Name = value; } }
 
+        // Unimplemented weight value for encumberence
         private float m_Weight;
         public float Weight { get { return m_Weight; } }// set { m_Weight = value; } }
 
+        // Uninplemented monetary value for item
         private float m_Value;
         public float Value { get { return m_Value; } }// set { m_Value = value; } }
 
@@ -66,6 +69,7 @@ namespace Dungeon
 
         }
 
+        // Overridden from base class
         public override string Use(ref Player player)
         {
             // Refill health
@@ -78,5 +82,15 @@ namespace Dungeon
             return "The item heals you.\r\n\r\nYour Health is now full at " + player.MaxHitPoints;
         }
 
+    }
+
+    // Key unlocks certain rooms
+    public class Key : Item
+    {
+        public Key(String name, float weight, float value, String description, Room roomThatKeyUnlocks) : base(name, weight, value, description)
+        {
+            RoomThisKeyUnlocks = roomThatKeyUnlocks;
+        }
+        public Room RoomThisKeyUnlocks { get; set; }
     }
 }

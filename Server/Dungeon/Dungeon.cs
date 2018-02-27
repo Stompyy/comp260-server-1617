@@ -37,7 +37,8 @@ namespace Dungeon
                     "Room 0",
                     "You are standing in the entrance hall\r\nAll adventures start here\n",
                     new List<Item> { grog, club, shield },
-                    new List<NPC> { guard }
+                    new List<NPC> { guard },
+                    false
                     );
                 room.north = "Room 1";
                 roomMap.Add(room.name, room);
@@ -48,7 +49,8 @@ namespace Dungeon
                     "Room 1", 
                     "You are in room 1\r\n", 
                     new List<Item> { sword },
-                    new List<NPC>()
+                    new List<NPC>(),
+                    false
                     );
                 room.south = "Room 0";
                 room.west = "Room 3";
@@ -61,7 +63,8 @@ namespace Dungeon
                     "Room 2", 
                     "You are in room 2\r\n", 
                     new List<Item> { shield },
-                    new List<NPC>()
+                    new List<NPC>(),
+                    false
                     );
                 room.north = "Room 4";
                 roomMap.Add(room.name, room);
@@ -72,7 +75,8 @@ namespace Dungeon
                     "Room 3", 
                     "You are in room 3\r\n", 
                     new List<Item>(),
-                    new List<NPC> { chicken }
+                    new List<NPC> { chicken },
+                    false
                     );
                 room.east = "Room 1";
                 roomMap.Add(room.name, room);
@@ -83,7 +87,8 @@ namespace Dungeon
                     "Room 4", 
                     "You are in room 4\r\n", 
                     new List<Item> { potion },
-                    new List<NPC> { }
+                    new List<NPC> { },
+                    false
                     );
                 room.south = "Room 2";
                 room.west = "Room 5";
@@ -95,7 +100,8 @@ namespace Dungeon
                     "Room 5", 
                     "You are in room 5\r\n", 
                     new List<Item>(),
-                    new List<NPC>()
+                    new List<NPC>(),
+                    false
                     );
                 room.south = "Room 1";
                 room.east = "Room 4";
@@ -107,7 +113,8 @@ namespace Dungeon
                     "End Room!",
                     "The final room, congratulations!",
                     new List<Item>(),
-                    new List<NPC>()
+                    new List<NPC>(),
+                    false
                     );
                 //...
                 //...

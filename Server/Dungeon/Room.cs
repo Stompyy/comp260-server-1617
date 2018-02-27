@@ -8,7 +8,7 @@ namespace Dungeon
 {
     public class Room
     {
-        public Room(String name, String desc, List<Item> itemsInRoom, List<NPC> NPCsInRoom)
+        public Room(String name, String desc, List<Item> itemsInRoom, List<NPC> NPCsInRoom, bool isLocked)
         {
             this.description = desc;
             this.name = name;
@@ -16,6 +16,7 @@ namespace Dungeon
             m_NPCList = NPCsInRoom;
             m_NamesOfPlayersInRoom = new List<String>();
             PlayersInRoom = new List<String>();
+            this.IsLocked = isLocked;
         }
 
         public void RemovePlayer(String playerName)
@@ -92,6 +93,7 @@ namespace Dungeon
         // Non playable characters in this room
         private List<NPC> m_NPCList;
         public List<NPC> NPCList { get { return m_NPCList; } set { m_NPCList = value; } }
+        public bool IsLocked { get; set; }
         public String TalkToNPC(String npcName)
         {
             if (m_NPCList.Count > 0)

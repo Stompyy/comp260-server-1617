@@ -23,6 +23,7 @@ namespace Winform_Client
         bool bQuit = false;
         bool bConnected = false;
         
+        // D&D style character sheet
         static int 
             m_Strength, 
             m_Dexterity,
@@ -349,7 +350,6 @@ namespace Winform_Client
                                 m_Intelligence.ToString() + " " +
                                 m_Wisdom.ToString() + " " +
                                 m_Charisma.ToString();
-                            //characterSheetString.destination = currentClientList[listBox_ClientList.Items.Count - 1];
                             MemoryStream outStream = characterSheetString.WriteData();
                             client.Send(outStream.GetBuffer());
 
@@ -364,7 +364,7 @@ namespace Winform_Client
                             MemoryStream outStream = publicMsg.WriteData();
                             client.Send(outStream.GetBuffer());
                         }
-                        // If == last item == "Game" Msg
+                        // If == last item ("Game" Msg)
                         else if (listBox_ClientList.SelectedIndex == listBox_ClientList.Items.Count - 1)
                         {
                             GameMsg GameMessage = new GameMsg();
@@ -425,6 +425,7 @@ namespace Winform_Client
             client.Send(outStream.GetBuffer());
         }
 
+        // Winform button shortcuts
         private void LookAround_Click(object sender, EventArgs e)
         {
             if (playerReady)
@@ -442,21 +443,23 @@ namespace Winform_Client
         {
             if (playerReady)
             {
-                switch (keyEvent.KeyCode)
-                {
-                    case Keys.Up:
-                        SendGameMessage("go north");
-                        break;
-                    case Keys.Left:
-                        SendGameMessage("go west");
-                        break;
-                    case Keys.Down:
-                        SendGameMessage("go south");
-                        break;
-                    case Keys.Right:
-                        SendGameMessage("go east");
-                        break;
-                }
+                // Uncomment below for arrow key navigation
+
+                //switch (keyEvent.KeyCode)
+                //{
+                //    case Keys.Up:
+                //        SendGameMessage("go north");
+                //        break;
+                //    case Keys.Left:
+                //        SendGameMessage("go west");
+                //        break;
+                //    case Keys.Down:
+                //        SendGameMessage("go south");
+                //        break;
+                //    case Keys.Right:
+                //        SendGameMessage("go east");
+                //        break;
+                //}
             }
         }
 

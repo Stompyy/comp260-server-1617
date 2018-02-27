@@ -7,6 +7,7 @@ namespace Dungeon
 {
     public abstract class Character
     {
+        // D&D style ability modifier
         private void AdjustAbilityModifier(int abilityScore, ref int abilityModifier)
         {
             switch (abilityScore)
@@ -51,7 +52,7 @@ namespace Dungeon
             m_Wisdom = Convert.ToInt32(characterSheet[4]);
             m_Charisma = Convert.ToInt32(characterSheet[5]);
 
-            // D&D style set Attack modifer (Strength), Armour class (Dexterity, and Hit points (Constitution)
+            // D&D style set Attack modifer (Strength), Armour class (Dexterity), and Hit points (Constitution)
             AdjustAbilityModifier(m_Strength, ref m_AttackModifier);
             AdjustAbilityModifier(m_Dexterity, ref m_ArmourClass);
             AdjustAbilityModifier(m_Constitution, ref m_MaxHitPoints);
@@ -118,6 +119,7 @@ namespace Dungeon
         private List<Item> m_Inventory;
         public ref List<Item> Inventory { get { return ref m_Inventory; } }
 
+        // Inventory control
         public void AddItem(Item item) { m_Inventory.Add(item); }
         public bool DropItem(String itemName, ref Room currentRoom)
         {
@@ -133,6 +135,7 @@ namespace Dungeon
             return false;
         }
 
+        // Give item to another player
         public bool GiveItem(String itemName, ref Player recipient)
         {
             foreach (Item item in m_Inventory)
@@ -266,6 +269,7 @@ namespace Dungeon
             return "<PickPocket> attempt failed. " + targetNPC.Name + " slowly turns round and looks at you. They know what you have just tried to do.\r\n\r\nRoll: " + playerDexRoll + "\r\nSave: " + targetSavingRoll;
         }
 
+        // This is quite fun
         public String FightPlayer(ref Player attackedPlayer, Random rand)
         {
             // Roll attack throw against attacked player's armour class
@@ -317,7 +321,7 @@ namespace Dungeon
         }
     }
 
-    // NPC
+    // NPC base class, in case we want npc enemies later as well as friendlies
     public class NPC : Character
     {
         public NPC(String name, List<Item> startItems, String description, String speech) : base(name, startItems)
@@ -326,9 +330,11 @@ namespace Dungeon
             m_Speech = speech;
         }
 
+        // Look at response
         private String m_Description;
         public String Description { get { return m_Description; } }
 
+        // Talk to response
         private String m_Speech;
         public String Speech { get { return m_Speech; } }
     }
