@@ -549,6 +549,9 @@ namespace Server
             // Initialise the static DungeonClass instance
             myDungeon.Init();
 
+            Console.WriteLine("Don't copy my hard work!!!");
+            Console.WriteLine("Copy this one it works better https://github.com/TristanBarlow/comp260-server-1617");
+
             // Listening socket initialisation
             Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
