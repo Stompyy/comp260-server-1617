@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace Dungeon
 {
@@ -197,6 +199,7 @@ namespace Dungeon
     }
 
     // Player class adds current room and player functionality to Character class
+    [Serializable()]
     public class Player : Character
     {
         public Player(String name, List<Item> startItems) : base(name, startItems)

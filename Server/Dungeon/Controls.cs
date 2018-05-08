@@ -21,7 +21,7 @@ namespace Dungeon
             }
             return null;
         }
-    
+
         // Simple constructor
         public Controls(ref ForestCastleDungeon dungeon) { m_Dungeon = dungeon; }
         private ForestCastleDungeon m_Dungeon;
@@ -30,10 +30,12 @@ namespace Dungeon
         Random rand = new Random();
 
         // Update function
-        public string Update(ref Player player, ref Player targetedPlayer, String inputMessage)
+        public string Update(ref Player player, ref Player targetedPlayer, out Room currentRoom, String inputMessage)
         {
+
+            currentRoom = player.CurrentRoom;
             // Get the soon to be needed information from the player
-            ref Room currentRoom = ref player.GetCurrentRoomRef;
+            //Room currentRoom = player.CurrentRoom;
             String playerName = player.Name;
 
             // Parse inputMessage
@@ -212,7 +214,7 @@ namespace Dungeon
                     try
                     {
                         String itemName = input[1].ToLower();
-                        foreach(Item item in player.Inventory)
+                        foreach (Item item in player.Inventory)
                         {
                             if (item.Name == itemName)
                             {
@@ -222,7 +224,7 @@ namespace Dungeon
                         }
                         return "You do not have a " + input[1].ToLower() + " in your inventory.";
                     }
-                    catch(Exception)
+                    catch (Exception)
                     {
                         return "What would you like to use?";
                     }
@@ -235,10 +237,12 @@ namespace Dungeon
                         {
                             return "You will have to unequip the " + input[1].ToLower() + " first.";
                         }
-                        else {
+                        else
+                        {
                             // Function also returns if item is available
                             if (player.DropItem(input[1].ToLower(), ref currentRoom))
                             {
+                                player.CurrentRoom = currentRoom;
                                 return "You drop the " + input[1].ToLower() + " on the floor.";
                             }
                             else
@@ -260,7 +264,10 @@ namespace Dungeon
                         {
                             // Function also returns if item is available
                             if (currentRoom.PickUp(ref player, input[2].ToLower()))
+                            {
+                                player.CurrentRoom = currentRoom;
                                 return "\r\nYou pick up the " + input[2].ToLower() + " and add it to your inventory.";
+                            }
                             else
                                 return "\r\nThere is no " + input[2].ToLower() + " in the room.";
                         }
@@ -317,7 +324,7 @@ namespace Dungeon
                         catch { }
                         return "You do not have a " + input[1].ToLower() + " in your inventory.";
                     }
-                    catch(Exception)
+                    catch (Exception)
                     {
                         return "What would you like to equip?";
                     }
@@ -378,7 +385,7 @@ namespace Dungeon
                                     }
                                     if (player.GiveItem(input[1], ref targetedPlayer))
                                     {
-                                        
+
                                         return "@<Gift> You give your " + input[1] + " to " + targetedPlayer.Name + ".@<Gift> " + player.Name + " has given you a " + input[1] + ".";
                                     }
                                     else
@@ -401,7 +408,7 @@ namespace Dungeon
                             return "That's not how to politely give things.";
                         }
                     }
-                    catch(Exception)
+                    catch (Exception)
                     {
                         return "What would you like to give, and to who?";
                     }
@@ -433,7 +440,7 @@ namespace Dungeon
                         else
                         {
                             // Check for NPC pickpocketing
-                            foreach (Character character in player.GetCurrentRoomRef.NPCList)
+                            foreach (Character character in player.CurrentRoom.NPCList)
                             {
                                 if (character.Name == input[1])
                                 {

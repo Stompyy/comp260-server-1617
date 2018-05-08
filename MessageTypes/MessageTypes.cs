@@ -13,8 +13,11 @@ namespace MessageTypes
         clientListMessage,
         clientNameMessage,
         gameMessage,
-        playerInitMessage
+        playerInitMessage,
+        createNewUserMsg
     }
+
+    // This could all probably be done more elegantly but this supplied code works and is easily tinkered with and added to
     public abstract class Msg
     {
         public Msg() { mID = 0; }
@@ -59,6 +62,16 @@ namespace MessageTypes
                 case PlayerDeadMsg.ID:
                     m = new PlayerDeadMsg();
                     break;
+
+                case LoginMsg.ID:
+                    m = new LoginMsg();
+                    break;
+
+                case CreateNewUserMsg.ID:
+                    m = new CreateNewUserMsg();
+                    break;
+
+
 
                 default:
                     throw (new Exception());
@@ -131,15 +144,15 @@ namespace MessageTypes
         public const int ID = 3;
         public List<String> clientList;
 
-        public ClientListMsg() 
-        { 
+        public ClientListMsg()
+        {
             mID = ID;
 
             clientList = new List<String>();
         }
         public override MemoryStream WriteData()
         {
-            
+
             MemoryStream stream = new MemoryStream();
             BinaryWriter write = new BinaryWriter(stream);
 
@@ -252,27 +265,73 @@ namespace MessageTypes
         }
     }
 
-        public class PlayerDeadMsg : Msg
+    public class PlayerDeadMsg : Msg
+    {
+        public const int ID = 7;
+        public String msg;
+
+        public PlayerDeadMsg()
         {
-            public const int ID = 7;
-            public String msg;
+            mID = ID;
+        }
+        public override MemoryStream WriteData()
+        {
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter write = new BinaryWriter(stream);
+            write.Write(ID);
+            write.Write(msg);
 
-            public PlayerDeadMsg()
-            {
-                mID = ID;
-            }
-            public override MemoryStream WriteData()
-            {
-                MemoryStream stream = new MemoryStream();
-                BinaryWriter write = new BinaryWriter(stream);
-                write.Write(ID);
-                write.Write(msg);
+            write.Close();
 
-                write.Close();
+            return stream;
+        }
 
-                return stream;
-            }
+        public override void ReadData(BinaryReader read)
+        {
+            msg = read.ReadString();
+        }
+    }
 
+    public class CreateNewUserMsg : Msg
+    {
+        public const int ID = 8;
+        public String msg;
+
+        public CreateNewUserMsg() { mID = ID; }
+        public override MemoryStream WriteData()
+        {
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter write = new BinaryWriter(stream);
+            write.Write(ID);
+            write.Write(msg);
+
+            write.Close();
+
+            return stream;
+        }
+        public override void ReadData(BinaryReader read)
+        {
+            msg = read.ReadString();
+        }
+    }
+
+    public class LoginMsg : Msg
+    {
+        public const int ID = 9;
+        public String msg;
+
+        public LoginMsg() { mID = ID; }
+        public override MemoryStream WriteData()
+        {
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter write = new BinaryWriter(stream);
+            write.Write(ID);
+            write.Write(msg);
+
+            write.Close();
+
+            return stream;
+        }
         public override void ReadData(BinaryReader read)
         {
             msg = read.ReadString();

@@ -2,14 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Server;
 
 namespace Dungeon
 {
     // New dungeon!
     public class ForestCastleDungeon
     {
-        Dictionary<String, Room> roomMap;
-
         // Items instantiation
         Item grog = new Item("grog", 0.5f, 4.0f, "Ah sweet grog. I love you grog.");
 
@@ -41,181 +40,218 @@ namespace Dungeon
         Friendly chicken = new Friendly("chicken", new List<Item> { egg }, "The chicken looks back at you.", "The chicken says nothing. It looks angry.");
         Friendly jockey = new Friendly("jockey", new List<Item> { }, "He doesn't really look like a jockey, but it's late at night and what other NPC would be at a stable?", "<jockey> I hate horses.");
         Friendly jedi = new Friendly("jedi", new List<Item> { lightsaber }, "For more than a thousand generations, the Jedi Knights were the guardians of peace and justice in the Old Republic. Before the dark times. Before the Empire", "<jedi> Did you ever hear the tragedy of Darth Plagueis the Wise? I thought not. It's not a story the Jedi would tell you. It's a Sith legend. Darth Plagueis was a Dark Lord of the Sith, so powerful and so wise he could use the Force to influence the midichlorians to create life... He had such a knowledge of the dark side that he could even keep the ones he cared about from dying. The dark side of the Force is a pathway to many abilities some consider to be unnatural. He became so powerful... the only thing he was afraid of was losing his power, which eventually, of course, he did. Unfortunately, he taught his apprentice everything he knew, then his apprentice killed him in his sleep. It's ironic he could save others from death, but not himself.");
-        
 
-        public void Init()
+
+        public void Init(SQLDatabase database)
         {
+            SQLTable rooms = database.getTable("rooms");
+
+            String[] roomTableFieldNames = new string[] {
+                "name",
+                "id",
+                "north",
+                "south",
+                "east",
+                "west",
+                "description",
+                "isLocked",
+                "itemList",
+                "npcList",
+                "namesOfPlayersInRoom"
+            };
+
             // No need to look at this...
             jedi.Dexterity = 20;
 
-            roomMap = new Dictionary<string, Room>();
-            {
-                var room = new Room(
-                    "Mountain road",
-                    "The road leads down from the mountains into a wooded valley. To the north a castle looms above the treeline to the north. Your hero's instinct drives you to help drive evil from these lands.",
-                    new List<Item> { branch, rock },
-                    new List<NPC> { guard1 },
-                    false
-                    );
-                room.north = "End of the road";
-                roomMap.Add(room.name, room);
-            }
+            rooms.AddEntry(new string[]
+                {
+                    "Mountain road",	// name
+					"0", 					// ID
+					"End of the road",	// N
+					null,				// S
+					null,				// E
+					null,				// W
+					"The road leads down from the mountains into a wooded valley. To the north a castle looms above the treeline to the north. Your hero's instinct drives you to help drive evil from these lands.",
+                    "0",					// isLocked
+					"branch rock",		// itemList
+					"guard1",			// npcList
+					""					// players in room
+				}, roomTableFieldNames);
 
-            {
-                var room = new Room(
-                    "End of the road",
-                    "You are standing in a clearing. The road from the mountains finishes at a fork. A castle lies to the west, and a dark forest stretches out to the east.",
-                    new List<Item> {},
-                    new List<NPC> { chicken },
-                    false
-                    );
-                room.south = "Mountain road";
-                room.east = "Forest entrance";
-                room.west = "Castle stables";
-                roomMap.Add(room.name, room);
-            }
+            rooms.AddEntry(new string[]
+                {
+                    "End of the road",	// name
+					"1", 					// ID
+					null,				// N
+					"Mountain road",	// S
+					"Forest entrance",	// E
+					"Castle stables",	// W
+					"You are standing in a clearing. The road from the mountains finishes at a fork. A castle lies to the west, and a dark forest stretches out to the east.",
+                    "0",					// isLocked
+					"",					// itemList
+					"chicken",			// npcList
+					""					// players in room
+				}, roomTableFieldNames);
 
-            {
-                var room = new Room(
-                    "Forest entrance",
-                    "A dark forest spreads out in front of you. Strange noises fill the air. The darkness in the trees reaches out to lure you in, but you wonder if you are strong enough to survive what lies within. The castle is far to the west, and you think you see a path through the trees to the north.",
-                    new List<Item> { club },
-                    new List<NPC> { peasant },
-                    false
-                    );
-                room.north = "Dark forest";
-                room.west = "End of the road";
-                roomMap.Add(room.name, room);
-            }
+            rooms.AddEntry(new string[]
+                {
+                    "Forest entrance",	// name
+					"2", 					// ID
+					"Dark forest",		// N
+					null,				// S
+					null,				// E
+					"End of the road",	// W
+					"A dark forest spreads out in front of you. Strange noises fill the air. The darkness in the trees reaches out to lure you in, but you wonder if you are strong enough to survive what lies within. The castle is far to the west, and you think you see a path through the trees to the north.",
+                    "0",					// isLocked
+					"club",				// itemList
+					"peasant",			// npcList
+					""					// players in room
+				}, roomTableFieldNames);
 
-            {
-                var room = new Room(
-                    "Dark forest",
-                    "The trees here are packed so closely together that the light can barely break through to light the way in front of you. The forest thins towards the west and you know the castle lies somewhere to the south. As you fight the feeling of being lost, you think you hear water running to the north.",
-                    new List<Item> {},
-                    new List<NPC> {},
-                    false
-                    );
-                room.north = "Lagoon";
-                room.south = "Forest entrance";
-                room.west = "Castle entrance";
-                roomMap.Add(room.name, room);
-            }
+            rooms.AddEntry(new string[]
+                {
+                    "Dark forest",		// name
+					"3", 					// ID
+					"Lagoon",			// N
+					"Forest entrance",	// S
+					null,				// E
+					"Castle entrance",	// W
+					"The trees here are packed so closely together that the light can barely break through to light the way in front of you. The forest thins towards the west and you know the castle lies somewhere to the south. As you fight the feeling of being lost, you think you hear water running to the north.",
+                    "0",					// isLocked
+					"",					// itemList
+					"",					// npcList
+					""					// players in room
+				}, roomTableFieldNames);
 
-            {
-                var room = new Room(
-                    "Lagoon",
-                    "The sound of water reveals a lagoon in a clearing in the trees. The water is crystal clear. The dark forest stretches out to the south, and a cave entrance can be seen to the north",
-                    new List<Item> { fish },
-                    new List<NPC> { lostGuard },
-                    false
-                    );
-                room.south = "Dark forest";
-                room.north = "Cave";
-                roomMap.Add(room.name, room);
-            }
+            rooms.AddEntry(new string[]
+                {
+                    "Lagoon",			// name
+					"4", 					// ID
+					"Cave",				// N
+					"Dark forest",		// S
+					null,				// E
+					null,				// W
+					"The sound of water reveals a lagoon in a clearing in the trees. The water is crystal clear. The dark forest stretches out to the south, and a cave entrance can be seen to the north",
+                    "0",					// isLocked
+					"fish",				// itemList
+					"lostGuard",		// npcList
+					""					// players in room
+				}, roomTableFieldNames);
 
-            {
-                var room = new Room(
-                    "Cave",
-                    "You sense anger, fear, aggression... There is a hole falling straight down into the cave floor to the west.",
-                    new List<Item> { finalDoorKey },
-                    new List<NPC> { jedi },
-                    false
-                    );
-                room.south = "Lagoon";
-                room.west = "<You use the key!\r\n\r\nCastle prison";
-                roomMap.Add(room.name, room);
-            }
+            rooms.AddEntry(new string[]
+                {
+                    "Cave",				// name
+					"5", 					// ID
+					null,				// N
+					"Lagoon",			// S
+					null,				// E
+					"<You use the key!\r\n\r\nCastle prison",		// W
+					"You sense anger, fear, aggression... There is a hole falling straight down into the cave floor to the west.",
+                    "0",					// isLocked
+					"finalDoorKey",		// itemList
+					"jedi",				// npcList
+					""					// players in room
+				}, roomTableFieldNames);
 
-            {
-                var room = new Room(
-                    "Castle stables",
-                    "This looks like the side entrance to the castle. It smells of horses. North goes further into the castle, and east goes back out to the forest.",
-                    new List<Item> { shield },
-                    new List<NPC> { jockey, guard2 },
-                    false
-                    );
-                room.north = "Castle courtyard";
-                room.east = "End of the road";
-                roomMap.Add(room.name, room);
-            }
+            rooms.AddEntry(new string[]
+                {
+                    "Castle stables",	// name
+					"6", 					// ID
+					"Castle courtyard",	// N
+					null,				// S
+					"End of the road",	// E
+					null,				// W
+					"This looks like the side entrance to the castle. It smells of horses. North goes further into the castle, and east goes back out to the forest.",
+                    "0",					// isLocked
+					"shield",			// itemList
+					"jockey guard2",	// npcList
+					""					// players in room
+				}, roomTableFieldNames);
 
-            {
-                var room = new Room(
-                    "Castle courtyard",
-                    "The courtyard is a bit like the main bit of Gondor from the last Lord of the Rings. I'm tired. The stables are to the south, and stairs lead down to the north.",
-                    new List<Item> { masterSword, sweetRoll },
-                    new List<NPC> { guard3 },
-                    false
-                    );
-                room.south = "Castle stables";
-                room.north = "Castle stairs";
-                room.east = "Castle entrance";
-                roomMap.Add(room.name, room);
-            }
+            rooms.AddEntry(new string[]
+                {
+                    "Castle courtyard",	// name
+					"7", 					// ID
+					"Castle stairs",	// N
+					"Castle stables",	// S
+					"Castle entrance",	// E
+					null,				// W
+					"The courtyard is a bit like the main bit of Gondor from the last Lord of the Rings. I'm tired. The stables are to the south, and stairs lead down to the north.",
+                    "0",					// isLocked
+					"masterSword sweetRoll",			// itemList
+					"guard3",			// npcList
+					""					// players in room
+				}, roomTableFieldNames);
 
-            {
-                var room = new Room(
-                    "Castle stairs",
-                    "You remember about your quest to find the evil guard captain. You feel like you are getting close. Go south to go back, or north towards the final room!",
-                    new List<Item> { },
-                    new List<NPC> { },
-                    false
-                    );
-                room.south = "Castle courtyard";
-                room.north = "<You use the key!\r\n\r\nCastle prison";
-                roomMap.Add(room.name, room);
-            }
+            rooms.AddEntry(new string[]
+                {
+                    "Castle stairs",	// name
+					"8", 					// ID
+					"<You use the key!\r\n\r\nCastle prison",	// N
+					"Castle courtyard",	// S
+					null,				// E
+					null,				// W
+					"You remember about your quest to find the evil guard captain. You feel like you are getting close. Go south to go back, or north towards the final room!",
+                    "0",					// isLocked
+					"",					// itemList
+					"",					// npcList
+					""					// players in room
+				}, roomTableFieldNames);
 
-            {
-                var lockedRoom = new Room(
-                    "<You use the key!\r\n\r\nCastle prison",
-                    "You see the best armour in the game! Noone would blame you if you wanted to go back and kill all the other players. There is a hole in the ceiling to the east, but you can't reach it. The rest of the castle is up the stairs to the south.",
-                    new List<Item> { fullPlate },
-                    new List<NPC> { },
-                    true
-                    );
-                lockedRoom.north = "<Win> Castle guard room";
-                lockedRoom.south = "Castle stairs";
-                roomMap.Add(lockedRoom.name, lockedRoom);
+            rooms.AddEntry(new string[]
+                {
+                    "<You use the key!\r\n\r\nCastle prison",	// name
+					"9", 					// ID
+					"<Win> Castle guard room",	// N
+					"Castle stairs",	// S
+					null,				// E
+					null,				// W
+					"You see the best armour in the game! Noone would blame you if you wanted to go back and kill all the other players. There is a hole in the ceiling to the east, but you can't reach it. The rest of the castle is up the stairs to the south.",
+                    "1",					// isLocked
+					"fullPlate",		// itemList
+					"",					// npcList
+					""					// players in room
+				}, roomTableFieldNames);
 
-                // Set key to unlock this room
-                finalDoorKey.RoomThisKeyUnlocks = lockedRoom;
-            }
+            // Sort this out Richard you prick
+            // Set key to unlock this room
+            finalDoorKey.RoomThisKeyUnlocks = 9;
 
-            {
-                var room = new Room(
-                    "Castle entrance",
-                    "The Castle entrance towers above you. The courtyard lies to the west, and the forest is to the east.",
-                    new List<Item> { },
-                    new List<NPC> { guard4 },
-                    false
-                    );
-                room.west = "Castle courtyard";
-                room.east = "Dark forest";
-                roomMap.Add(room.name, room);
-            }
+            rooms.AddEntry(new string[]
+                {
+                    "Castle entrance",	// name
+					"10", 				// ID
+					null,				// N
+					null,				// S
+					"Dark forest",		// E
+					"Castle courtyard",	// W
+					"The Castle entrance towers above you. The courtyard lies to the west, and the forest is to the east.",
+                    "0",					// isLocked
+					"",					// itemList
+					"guard4",			// npcList
+					""					// players in room
+				}, roomTableFieldNames);
 
-            {
-                var room = new Room(
-                    "<Win> Castle guard room",
-                    "The evil guard captain turns out to be you. You forgot you were him, then went out in disguise - that's why noone recognised you. Then you hit your head and forgot everything. M Night Shyamalan. You win!",
-                    new List<Item> { },
-                    new List<NPC> { },
-                    false
-                    );
-                room.south = "<You use the key!\r\n\r\nCastle prison";
-                roomMap.Add(room.name, room);
-            }
-
-            // Initialise the start room for all Player instances
-            m_StartRoom = roomMap["Mountain road"];
+            rooms.AddEntry(new string[]
+                {
+                    "<Win> Castle guard room",	// name
+					"11", 				// ID
+					null,				// N
+					"<You use the key!\r\n\r\nCastle prison",	// S
+					null,				// E
+					null,				// W
+					"The evil guard captain turns out to be you. You forgot you were him, then went out in disguise - that's why noone recognised you. Then you hit your head and forgot everything. M Night Shyamalan. You win!",
+                    "0",					// isLocked
+					"",					// itemList
+					"",			// npcList
+					""					// players in room
+				}, roomTableFieldNames);
         }
 
+        // Initialise the start room for all Player instances
         // The room in which all Player instances will start the game in
-        private Room m_StartRoom;
-        public Room StartRoom { get { return m_StartRoom; } set { m_StartRoom = value; } }
+        private int m_StartRoom = 0;
+        public int StartRoom { get { return m_StartRoom; } set { m_StartRoom = value; } }
 
         // Returns the description member of the Room instance, and a list of the exits
         public string DescribeRoom(Room currentRoom)
@@ -284,6 +320,7 @@ namespace Dungeon
             }
             lock (roomMap)
             {
+
                 currentRoom.RemovePlayer(player.Name);
                 currentRoom = roomMap[direction];
                 currentRoom.AddPlayer(player.Name);

@@ -18,125 +18,59 @@ namespace Winform_Client
 {
     public partial class Form1 : Form
     {
-        Socket client;
-        private Thread myThread;
-        bool bQuit = false;
-        bool bConnected = false;
+        public Socket m_Server;
+        private Thread m_Thread;
+        bool m_Quit = false;
+        bool m_Connected = false;
+        List<String> m_CurrentClientList = new List<String>();
         
-        // D&D style character sheet
-        static int 
-            m_Strength, 
-            m_Dexterity,
-            m_Constitution,
-            m_Intelligence,
-            m_Wisdom,
-            m_Charisma;
+        static Form1 m_MainForm;
+        static LoginForm m_LoginForm;
+        static RegisterNewUser m_RegisterNewUserForm;
 
-        static bool playerReady = false;
-        static bool rollAgain = false;
-        static bool CharacterSheetSentToServer = false;
-
-        List<String> currentClientList = new List<String>();
-
-        // D&D method (best 3 values of 4d6)
-        static int RollAbility(Random rand)
+        // Constructor
+        public Form1()
         {
-            // 4 x 1d6 rolls
-            int a = rand.Next(1, 7);
-            int b = rand.Next(1, 7);
-            int c = rand.Next(1, 7);
-            int d = rand.Next(1, 7);
+            m_MainForm = this;
+            InitializeComponent();
 
-            int[] rolls = { a, b, c, d };
+            // Hide the main form until login is complete and gameplay starts
+            Hide();
+            m_Thread = new Thread(clientProcess);
+            m_Thread.Start(this);
 
-            // Remove the lowest value and return the sum
-            return (a + b + c + d - rolls.Min());
+            Application.ApplicationExit += delegate { OnExit(); };
         }
 
-        // Rolls a new character ability sheet and displays it
-        static public void RollNewCharacterSheet(Form1 form, Random rand,
-            ref int strength,
-            ref int dexterity,
-            ref int constitution,
-            ref int intelligence,
-            ref int wisdom,
-            ref int charisma)
-        {
-            strength = RollAbility(rand);
-            dexterity = RollAbility(rand);
-            constitution = RollAbility(rand);
-            intelligence = RollAbility(rand);
-            wisdom = RollAbility(rand);
-            charisma = RollAbility(rand);
-
-            form.AddGameText(" ");
-            form.AddMessageText(
-                "Strength: " + strength.ToString() +
-                "\r\nDexterity: " + dexterity.ToString() +
-                "\r\nConstitution: " + constitution.ToString() +
-                "\r\nIntelligence: " + intelligence.ToString() +
-                "\r\nWisdom: " + wisdom.ToString() +
-                "\r\nCharisma: " + charisma.ToString()
-                );
-            
-            form.AddMessageText("\r\n\r\nReroll character? Y/N \r\n\r\n");
-        }
-        
+        /*
+         * Connect to the server
+         */
         static public void clientProcess(Object o)
         {            
             Form1 form = (Form1)o;
-
-            // Random stream from which to roll dice for character sheet
-            Random rand = new Random();
-
-            // Initial roll
-            RollNewCharacterSheet(form, rand,
-                ref m_Strength,
-                ref m_Dexterity,
-                ref m_Constitution,
-                ref m_Intelligence,
-                ref m_Wisdom,
-                ref m_Charisma);
-
-            // Pre joining the server loop
-            while (!playerReady)
-            {
-                if (rollAgain)
-                {
-                    // Reroll character sheet when prompted
-                    rollAgain = false;
-                    RollNewCharacterSheet(form, rand,
-                        ref m_Strength,
-                        ref m_Dexterity,
-                        ref m_Constitution,
-                        ref m_Intelligence,
-                        ref m_Wisdom,
-                        ref m_Charisma);
-                }
-            }
             
-            while ((form.bConnected == false) && (form.bQuit == false))
+            while ((form.m_Connected == false) && (form.m_Quit == false))
             {
                 try
                 {
-                    form.client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    form.m_Server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    form.m_Server.Connect(new IPEndPoint(IPAddress.Parse("192.168.1.224"), 8500));//"165.227.227.143"
+                    form.m_Connected = true;
 
-                    // Only need to connect to local machine for this task
-                    form.client.Connect(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8500));
-                    form.bConnected = true;
-                    form.AddMessageText("Connected to server");
+                    m_MainForm.Invoke(new MethodInvoker(delegate ()
+                    {
+                        m_LoginForm.showConnectedMessage();
+                    }));
 
-                    Thread receiveThread;
-
-                    receiveThread = new Thread(clientReceive);
+                    Thread receiveThread = new Thread(clientReceive);
                     receiveThread.Start(o);
 
-                    while ((form.bQuit == false) && (form.bConnected == true))
+                    while ((form.m_Quit == false) && (form.m_Connected == true))
                     {
                         if (form.IsDisposed == true)
                         {
-                            form.bQuit = true;
-                            form.client.Close();
+                            form.m_Quit = true;
+                            form.m_Server.Close();
                         }
                     }                    
 
@@ -144,26 +78,42 @@ namespace Winform_Client
                 }
                 catch (System.Exception)
                 {
+                    m_MainForm.Enabled = false;
+
+                    if (m_LoginForm.Visible == false)
+                        m_LoginForm.ShowDialog();
+
+                    // Invokes access cross thread functions
+                    m_LoginForm.Invoke(new MethodInvoker(delegate ()
+                    {
+                        m_LoginForm.showDisconnectedMessage();
+                    }));
+                    m_MainForm.Invoke(new MethodInvoker(delegate ()
+                    {
+                        m_MainForm.Hide();
+                    }));
+
                     form.AddMessageText("No server!");
                     Thread.Sleep(1000);
-                }               
+                }
             }
+            Application.Restart();
         }
 
+        /*
+         * Receive messages from the server
+         */
         static void clientReceive(Object o)
         {
             Form1 form = (Form1)o;
 
-            while (form.bConnected == true)
+            while (form.m_Connected == true)
             {
                 try
                 {
                     byte[] buffer = new byte[4096];
-                    int result;
 
-                    result = form.client.Receive(buffer);
-
-                    if (result > 0)
+                    if (form.m_Server.Receive(buffer) > 0)
                     {
                         MemoryStream stream = new MemoryStream(buffer);
                         BinaryReader read = new BinaryReader(stream);
@@ -172,13 +122,11 @@ namespace Winform_Client
 
                         if (m != null)
                         {
-                            Console.Write("Got a message: ");
                             switch (m.mID)
                             {
                                 case PublicChatMsg.ID:
                                     {
                                         PublicChatMsg publicMsg = (PublicChatMsg)m;
-
                                         form.AddMessageText(publicMsg.msg);
                                     }
                                     break;
@@ -216,35 +164,116 @@ namespace Winform_Client
                                         // Player is dead. Quit.
                                         PlayerDeadMsg playerDeadMsg = (PlayerDeadMsg)m;
                                         form.AddGameText(playerDeadMsg.msg);
-                                        form.bQuit = true;
+                                        form.m_Quit = true;
                                     }
                                     break;
 
-                                default:
+                                case LoginMsg.ID:
+                                    {
+                                        LoginMsg recievedLoginMsg = (LoginMsg)m;
+                                        switch (recievedLoginMsg.msg)
+                                        {
+                                            case "LoginAccepted":
+                                                m_MainForm.Invoke(new MethodInvoker(delegate ()
+                                                {
+                                                    // Close the login window and enable and show the game window
+                                                    m_LoginForm.Close();
+                                                    m_MainForm.Enabled = true;
+                                                    m_MainForm.Show();
+                                                    m_MainForm.WindowState = FormWindowState.Normal;
+
+                                                    // Trigger the initial message for the game describing the current room 
+                                                    m_MainForm.SendGameMessage("look around");
+                                                }));
+
+                                                break;
+
+                                            case "LoginFailed":
+                                                m_MainForm.Invoke(new MethodInvoker(delegate ()
+                                                {
+                                                    // Clear text boxes and display error message
+                                                    m_LoginForm.ClearTextBoxes("Incorrect login details");
+                                                }));
+                                                break;
+
+                                            case "UserAlreadyLoggedIn":
+                                                m_MainForm.Invoke(new MethodInvoker(delegate ()
+                                                {
+                                                    // Clear text boxes and display error message
+                                                    m_LoginForm.ClearTextBoxes("User logged in already");
+                                                }));
+                                                break;
+
+                                            default:
+                                                // If not one of the above confirm/deny strings then the message is the password salt sent back from the server in order to compare password hashs.
+                                                Byte[] salt = Convert.FromBase64String(recievedLoginMsg.msg);
+
+                                                m_MainForm.Invoke(new MethodInvoker(delegate ()
+                                                {
+                                                    // Handing the salt back to the login form as we don't want to store the plaintext password anywhere, it is only ever read from the password box
+                                                    m_LoginForm.logInWithSaltedHash(salt);
+                                                }));
+                                                break;
+                                        }
+                                    }
+                                    break;
+
+                                case CreateNewUserMsg.ID:
+                                    {
+                                        // Returned through new user creation process
+                                        CreateNewUserMsg recievedNameCheck = (CreateNewUserMsg)m;
+                                        switch (recievedNameCheck.msg)
+                                        {
+                                            case "NameAvailable":
+                                                m_MainForm.Invoke(new MethodInvoker(delegate ()
+                                                {
+                                                    m_RegisterNewUserForm.UserNameAccepted();
+                                                }));
+                                                break;
+
+                                            case "NameTaken":
+                                                m_MainForm.Invoke(new MethodInvoker(delegate ()
+                                                {
+                                                    m_RegisterNewUserForm.UserNameRejected();
+                                                }));
+                                                break;
+
+                                            case "Success":
+                                                m_MainForm.Invoke(new MethodInvoker(delegate ()
+                                                {
+                                                    m_RegisterNewUserForm.Close();
+                                                }));
+                                                break;
+                                        }
+                                    }
                                     break;
                             }
                         }
-                    }     
-                    
+                    }
                 }
                 catch (Exception)
                 {
-                    form.bConnected = false;
+                    form.m_Connected = false;
                     Console.WriteLine("Lost server!");
+                    try
+                    {
+                        m_MainForm.Enabled = false;
+                        
+                        // if the login window is closed
+                        if (m_LoginForm.Visible == false)
+                            m_LoginForm.ShowDialog();
+
+                        m_MainForm.Invoke(new MethodInvoker(delegate ()
+                        {
+                            m_LoginForm.showDisconnectedMessage();
+                            m_MainForm.Hide();
+                        }));
+                    }
+                    catch { }
                 }
-
             }
+            Application.Restart();
         }
-        public Form1()
-        {
-            InitializeComponent();
-
-            myThread = new Thread(clientProcess);
-            myThread.Start(this);
-
-            Application.ApplicationExit += delegate { OnExit(); };
-        }
-
 
         private delegate void AddTextDelegate(String s);
 
@@ -279,6 +308,9 @@ namespace Winform_Client
             }
         }
 
+        /*
+         * Sets the client name in the upper left of the game window
+         */
         private delegate void SetClientNameDelegate(String s);
         private void SetClientName(String s)
         {
@@ -292,6 +324,9 @@ namespace Winform_Client
             }
         }
 
+        /*
+         * Sets the chat name list in the chat window
+         */
         private delegate void SetClientListDelegate(ClientListMsg clientList);
         private void SetClientList(ClientListMsg clientList)
         {
@@ -302,190 +337,210 @@ namespace Winform_Client
             else
             {
                 listBox_ClientList.DataSource = null;
-                currentClientList.Clear();
-                currentClientList.Add("All");
+                m_CurrentClientList.Clear();
+                // initialises the list with an 'All' field for chat to all other users
+                m_CurrentClientList.Add("All");
 
+                // Add each other users name to the list
                 foreach (String s in clientList.clientList)
                 {
-                    currentClientList.Add(s);
+                    m_CurrentClientList.Add(s);
                 }
-                currentClientList.Add("Game");
-                listBox_ClientList.DataSource = currentClientList;             
+                listBox_ClientList.DataSource = m_CurrentClientList;             
             }
         }
 
+        /*
+         * Sends a user creation message to the server
+         */
+        public void sendNewUserInfo(String newUserInfoString)
+        {
+            CreateNewUserMsg newUserMsg = new CreateNewUserMsg();
+            newUserMsg.msg = newUserInfoString;
+            MemoryStream outStream = newUserMsg.WriteData();
+            m_Server.Send(outStream.GetBuffer());
+        }
 
+        /*
+         * Different function name purely for readability. The server will parse the recieved string and act differently upon it dependining on it's composition
+         */
+        public void checkNameAvailability(String userName)
+        {
+            sendNewUserInfo(userName);
+        }
+
+        /*
+         * Sends a login message to the server
+         */
+        public void sendLoginDetails(String loginDetails)
+        {
+            LoginMsg loginMsg = new LoginMsg();
+            loginMsg.msg = loginDetails;
+            MemoryStream outStream = loginMsg.WriteData();
+            m_Server.Send(outStream.GetBuffer());
+
+            // Set The form's clientName as the username portion of the outbound message.
+            // It does not matter if the login message is unsuccessful as this form will only become visible on a succeesful login
+            m_MainForm.Invoke(new MethodInvoker(delegate ()
+            {
+                m_MainForm.SetClientName(loginDetails.Split(' ')[0]);
+            }));
+        }
+
+        /*
+         * Sends a game message to the server
+         */
         private void buttonSend_Click(object sender, EventArgs e)
         {
+            // If there is a message to send
             if (textBox_Input.Text.Length > 0)
             {
-                if (!playerReady)
-                {
-                    if (textBox_Input.Text.ToLower() == "y" || textBox_Input.Text.ToLower() == "yes")
-                    {
-                        // Uncomment the below line to remove the y/yes on each reroll. Leaving it there makes multiple rerolls easier
-                        //textBox_Input.Text = "";
-                        rollAgain = true;
-                    }
-
-                    else if (textBox_Input.Text.ToLower() == "n" || textBox_Input.Text.ToLower() == "no")
-                    {
-                        textBox_Input.Text = "";
-                        playerReady = true;
-                    }
-                }
-                else if (client != null)
+                // Sanity check that we are connected to the server
+                if (m_Server != null)
                 {
                     try
                     {
-                        // Send character sheet on first connected exchange (button click)
-                        if (!CharacterSheetSentToServer)
-                        {
-                            // Send accepted player character sheet to the server for player initialisation
-                            PlayerInitMsg characterSheetString = new PlayerInitMsg();
-                            characterSheetString.msg =
-                                m_Strength.ToString() + " " +
-                                m_Dexterity.ToString().ToString() + " " +
-                                m_Constitution.ToString() + " " +
-                                m_Intelligence.ToString() + " " +
-                                m_Wisdom.ToString() + " " +
-                                m_Charisma.ToString();
-                            MemoryStream outStream = characterSheetString.WriteData();
-                            client.Send(outStream.GetBuffer());
-
-                            CharacterSheetSentToServer = true;
-                        }
-                    
-                        if (listBox_ClientList.SelectedIndex == 0)
-                        {
-                            PublicChatMsg publicMsg = new PublicChatMsg();
-
-                            publicMsg.msg = textBox_Input.Text;
-                            MemoryStream outStream = publicMsg.WriteData();
-                            client.Send(outStream.GetBuffer());
-                        }
-                        // If == last item ("Game" Msg)
-                        else if (listBox_ClientList.SelectedIndex == listBox_ClientList.Items.Count - 1)
-                        {
-                            GameMsg GameMessage = new GameMsg();
-                            GameMessage.msg = textBox_Input.Text;
-                            GameMessage.destination = currentClientList[listBox_ClientList.SelectedIndex];
-                            MemoryStream outStream = GameMessage.WriteData();
-                            client.Send(outStream.GetBuffer());
-                        }
-                        else
-                        {
-                            PrivateChatMsg privateMsg = new PrivateChatMsg();
-
-                            privateMsg.msg = textBox_Input.Text;
-                            privateMsg.destination = currentClientList[listBox_ClientList.SelectedIndex];
-                            MemoryStream outStream = privateMsg.WriteData();
-                            client.Send(outStream.GetBuffer());
-                        }
-
+                        GameMsg GameMessage = new GameMsg();
+                        GameMessage.msg = SanitiseString(textBox_Input.Text);
+                        MemoryStream outStream = GameMessage.WriteData();
+                        m_Server.Send(outStream.GetBuffer());
                     }
                     catch (System.Exception)
                     {
                     }
-
+                    // Clear the text box
                     textBox_Input.Text = "";
                 }
             }
         }
 
-        private void OnExit()
+        /*
+         * Sanitise the string. Found at https://stackoverflow.com/questions/11395775/clean-the-string-is-there-any-better-way-of-doing-it?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+         * But easy enough I should have just done it myself
+         */
+        public string SanitiseString(string dirtyString)
         {
-            bQuit = true;
-            Thread.Sleep(500);
-            if (myThread != null)
+            HashSet<char> removeChars = new HashSet<char>("?&^$#@!()+-,:;<>’\'-_*");
+            StringBuilder result = new StringBuilder(dirtyString.Length);
+            foreach (char c in dirtyString)
+                if (!removeChars.Contains(c)) // prevent dirty chars
+                    result.Append(c);
+            return result.ToString();
+        }
+
+        /*
+         * Sends a chat message to other clients connected to the server
+         */
+        private void sendChatButton_Click(object sender, EventArgs e)
+        {
+            // If there is a message to send
+            if (textBox_chatMessage.Text.Length > 0)
             {
-                myThread.Abort();
+                // Sanity check that we are connected to the server
+                if (m_Server != null)
+                {
+                    try
+                    {
+                        // index = 0 is a chat message to all chat names in the chat name list
+                        if (listBox_ClientList.SelectedIndex == 0)
+                        {
+                            PublicChatMsg publicMsg = new PublicChatMsg();
+                            publicMsg.msg = SanitiseString(textBox_chatMessage.Text);
+                            MemoryStream outStream = publicMsg.WriteData();
+                            m_Server.Send(outStream.GetBuffer());
+                        }
+                        else
+                        {
+                            PrivateChatMsg privateMsg = new PrivateChatMsg();
+                            privateMsg.msg = SanitiseString(textBox_chatMessage.Text);
+
+                            // destination is the specific other client name that we are messaging
+                            privateMsg.destination = m_CurrentClientList[listBox_ClientList.SelectedIndex];
+                            MemoryStream outStream = privateMsg.WriteData();
+                            m_Server.Send(outStream.GetBuffer());
+                        }
+                    }
+                    catch (System.Exception)
+                    {
+                    }
+                    // Clear the text box
+                    textBox_chatMessage.Text = "";
+                }
             }
         }
 
-        private void listBox_ClientList_SelectedIndexChanged(object sender, EventArgs e)
+        /*
+         * On opening the main form, creates all other forms and references
+         */
+        private void Form1_Load(object sender, EventArgs e)
         {
-
+            m_RegisterNewUserForm = new RegisterNewUser(this);
+            m_LoginForm = new LoginForm(this, m_RegisterNewUserForm);
+            m_LoginForm.ShowDialog();
         }
 
-        private void textBox_Output_TextChanged(object sender, EventArgs e)
+        private void OnExit()
         {
-
+            m_Quit = true;
+            Thread.Sleep(500);
+            if (m_Thread != null)
+            {
+                m_Thread.Abort();
+            }
         }
 
-        // Send a String message to the game on the server
+        /*
+         * Send a String message to the game on the server
+         */
         private void SendGameMessage(String message)
         {
             GameMsg GameMessage = new GameMsg();
             GameMessage.msg = message;
-
-            // Send to game clientList index
-            GameMessage.destination = currentClientList[listBox_ClientList.Items.Count - 1];
             MemoryStream outStream = GameMessage.WriteData();
-            client.Send(outStream.GetBuffer());
+            m_Server.Send(outStream.GetBuffer());
         }
 
-        // Winform button shortcuts
+        /*
+         * Winform button shortcuts
+         */
         private void LookAround_Click(object sender, EventArgs e)
         {
-            if (playerReady)
-                SendGameMessage("look around");
+            SendGameMessage("look around");
         }
 
         private void Inventory_Click(object sender, EventArgs e)
         {
-            if (playerReady)
-                SendGameMessage("look at inventory");
+            SendGameMessage("look at inventory");
         }
-
-        // Key down short cuts spoof pre defined messages to be sent to the server
-        private void Form1_KeyDown(object sender, KeyEventArgs keyEvent)
-        {
-            if (playerReady)
-            {
-                // Uncomment below for arrow key navigation
-
-                //switch (keyEvent.KeyCode)
-                //{
-                //    case Keys.Up:
-                //        SendGameMessage("go north");
-                //        break;
-                //    case Keys.Left:
-                //        SendGameMessage("go west");
-                //        break;
-                //    case Keys.Down:
-                //        SendGameMessage("go south");
-                //        break;
-                //    case Keys.Right:
-                //        SendGameMessage("go east");
-                //        break;
-                //}
-            }
-        }
-
-        // Controller based on buttons on the winform client
+        
         private void North_Click(object sender, EventArgs e)
         {
-            if (playerReady)
-                SendGameMessage("go north");
+            SendGameMessage("go north");
         }
 
         private void South_Click(object sender, EventArgs e)
         {
-            if (playerReady)
-                SendGameMessage("go south");
+            SendGameMessage("go south");
         }
 
         private void East_Click(object sender, EventArgs e)
         {
-            if (playerReady)
-                SendGameMessage("go east");
+            SendGameMessage("go east");
         }
 
         private void West_Click(object sender, EventArgs e)
         {
-            if (playerReady)
-                SendGameMessage("go west");
+            SendGameMessage("go west");
+        }
+
+        private void helpButton_Click(object sender, EventArgs e)
+        {
+            SendGameMessage("help");
+        }
+
+        private void showStatsButton_Click(object sender, EventArgs e)
+        {
+            SendGameMessage("stats");
         }
     }
 }
