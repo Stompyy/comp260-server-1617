@@ -18,5 +18,5 @@ C:\Users\Rich\Desktop\comp260-server-1617\Winform Client\Winform Client\obj\x86\
 C:\Users\Rich\Desktop\comp260-server-1617\Winform Client\Winform Client\obj\x86\Debug\Winform Client.pdb
 C:\Users\Rich\Desktop\comp260-server-1617\Winform Client\Winform Client\bin\Debug\Winform Client.exe
 C:\Users\Rich\Desktop\comp260-server-1617\Winform Client\Winform Client\bin\Debug\Winform Client.pdb
-C:\Users\Rich\Desktop\comp260-server-1617\Winform Client\Winform Client\bin\Debug\MessageTypes.dll
-C:\Users\Rich\Desktop\comp260-server-1617\Winform Client\Winform Client\bin\Debug\MessageTypes.pdb
+C:\Users\Rich\Desktop\comp260-server-1617\Winform Client\Winform Client\obj\x86\Debug\Winform_Client.RegisterNewUser.resources
+C:\Users\Rich\Desktop\comp260-server-1617\Winform Client\Winform Client\obj\x86\Debug\Winform_Client.LoginForm.resources

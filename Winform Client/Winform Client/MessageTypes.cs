@@ -1,0 +1,344 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.IO;
+
+namespace MessageTypes
+{
+    enum MessageType
+    {
+        publicMessage,
+        privateMessage,
+        clientListMessage,
+        clientNameMessage,
+        gameMessage,
+        playerInitMessage,
+        createNewUserMsg
+    }
+    public abstract class Msg
+    {
+        public Msg() { mID = 0; }
+        public int mID;
+
+        public abstract MemoryStream WriteData();
+        public abstract void ReadData(BinaryReader read);
+
+        public static Msg DecodeStream(BinaryReader read)
+        {
+            int id;
+            Msg m = null;
+
+            id = read.ReadInt32();
+
+            switch (id)
+            {
+                case PublicChatMsg.ID:
+                    m = new PublicChatMsg();
+                    break;
+
+                case PrivateChatMsg.ID:
+                    m = new PrivateChatMsg();
+                    break;
+
+                case ClientListMsg.ID:
+                    m = new ClientListMsg();
+                    break;
+
+                case ClientNameMsg.ID:
+                    m = new ClientNameMsg();
+                    break;
+
+                case GameMsg.ID:
+                    m = new GameMsg();
+                    break;
+
+                case PlayerInitMsg.ID:
+                    m = new PlayerInitMsg();
+                    break;
+
+                case PlayerDeadMsg.ID:
+                    m = new PlayerDeadMsg();
+                    break;
+
+                case LoginMsg.ID:
+                    m = new LoginMsg();
+                    break;
+
+                case CreateNewUserMsg.ID:
+                    m = new CreateNewUserMsg();
+                    break;
+
+
+
+                default:
+                    throw (new Exception());
+            }
+
+            if (m != null)
+            {
+                m.mID = id;
+                m.ReadData(read);
+            }
+
+            return m;
+        }
+    }
+
+    public class PublicChatMsg : Msg
+    {
+        public const int ID = 1;
+        public String msg;
+
+        public PublicChatMsg() { mID = ID; }
+
+        public override MemoryStream WriteData()
+        {
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter write = new BinaryWriter(stream);
+
+            write.Write(ID);
+            write.Write(msg);
+
+            write.Close();
+
+            return stream;
+        }
+
+        public override void ReadData(BinaryReader read)
+        {
+            msg = read.ReadString();
+        }
+    }
+
+    public class PrivateChatMsg : Msg
+    {
+        public const int ID = 2;
+        public String msg;
+        public String destination;
+
+        public PrivateChatMsg() { mID = ID; }
+        public override MemoryStream WriteData()
+        {
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter write = new BinaryWriter(stream);
+            write.Write(ID);
+            write.Write(msg);
+            write.Write(destination);
+
+            write.Close();
+
+            return stream;
+        }
+        public override void ReadData(BinaryReader read)
+        {
+            msg = read.ReadString();
+            destination = read.ReadString();
+        }
+    }
+
+    public class ClientListMsg : Msg
+    {
+        public const int ID = 3;
+        public List<String> clientList;
+
+        public ClientListMsg()
+        {
+            mID = ID;
+
+            clientList = new List<String>();
+        }
+        public override MemoryStream WriteData()
+        {
+
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter write = new BinaryWriter(stream);
+
+            write.Write(ID);
+            write.Write(clientList.Count);
+            foreach (String s in clientList)
+            {
+                write.Write(s);
+            }
+
+            write.Close();
+
+            return stream;
+        }
+        public override void ReadData(BinaryReader read)
+        {
+            int count = read.ReadInt32();
+
+            clientList.Clear();
+
+            for (int i = 0; i < count; i++)
+            {
+                clientList.Add(read.ReadString());
+            }
+        }
+    }
+
+
+    public class ClientNameMsg : Msg
+    {
+        public const int ID = 4;
+
+        public String name;
+
+        public ClientNameMsg() { mID = ID; }
+
+        public override MemoryStream WriteData()
+        {
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter write = new BinaryWriter(stream);
+            write.Write(ID);
+            write.Write(name);
+
+            write.Close();
+
+            return stream;
+        }
+
+        public override void ReadData(BinaryReader read)
+        {
+            name = read.ReadString();
+        }
+    }
+
+    public class GameMsg : Msg
+    {
+        public const int ID = 5;
+        public String msg;
+    //    public String destination;
+
+        public GameMsg()
+        {
+            mID = ID;
+        }
+        public override MemoryStream WriteData()
+        {
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter write = new BinaryWriter(stream);
+            write.Write(ID);
+            write.Write(msg);
+    //        write.Write(destination);
+
+            write.Close();
+
+            return stream;
+        }
+
+        public override void ReadData(BinaryReader read)
+        {
+            msg = read.ReadString();
+    //        destination = read.ReadString();
+        }
+    }
+
+    public class PlayerInitMsg : Msg
+    {
+        public const int ID = 6;
+        public String msg;
+
+        public PlayerInitMsg()
+        {
+            mID = ID;
+        }
+        public override MemoryStream WriteData()
+        {
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter write = new BinaryWriter(stream);
+            write.Write(ID);
+            write.Write(msg);
+
+            write.Close();
+
+            return stream;
+        }
+
+
+        public override void ReadData(BinaryReader read)
+        {
+            msg = read.ReadString();
+        }
+    }
+
+    public class PlayerDeadMsg : Msg
+    {
+        public const int ID = 7;
+        public String msg;
+
+        public PlayerDeadMsg()
+        {
+            mID = ID;
+        }
+        public override MemoryStream WriteData()
+        {
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter write = new BinaryWriter(stream);
+            write.Write(ID);
+            write.Write(msg);
+
+            write.Close();
+
+            return stream;
+        }
+
+        public override void ReadData(BinaryReader read)
+        {
+            msg = read.ReadString();
+        }
+    }
+
+    public class CreateNewUserMsg : Msg
+    {
+        public const int ID = 8;
+        public String msg;
+ //       public String destination;
+
+        public CreateNewUserMsg() { mID = ID; }
+        public override MemoryStream WriteData()
+        {
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter write = new BinaryWriter(stream);
+            write.Write(ID);
+            write.Write(msg);
+ //           write.Write(destination);
+
+            write.Close();
+
+            return stream;
+        }
+        public override void ReadData(BinaryReader read)
+        {
+            msg = read.ReadString();
+ //           destination = read.ReadString();
+        }
+    }
+
+    public class LoginMsg : Msg
+    {
+        public const int ID = 9;
+        public String msg;
+ //       public String destination;
+
+        public LoginMsg() { mID = ID; }
+        public override MemoryStream WriteData()
+        {
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter write = new BinaryWriter(stream);
+            write.Write(ID);
+            write.Write(msg);
+ //           write.Write(destination);
+
+            write.Close();
+
+            return stream;
+        }
+        public override void ReadData(BinaryReader read)
+        {
+            msg = read.ReadString();
+ //           destination = read.ReadString();
+        }
+    }
+}
