@@ -16,6 +16,9 @@ namespace Server
 {
     class Program
     {
+        // The Server IP address
+        static String serverIPAddress = "127.0.0.1";
+
         // Database table references
         static DungeonTable dungeonTable;
         static LoginTable loginsTable;
@@ -721,7 +724,7 @@ namespace Server
             Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
             // Local address for developing purposes!
-            serverSocket.Bind(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8500)); // 192.168.1.224
+            serverSocket.Bind(new IPEndPoint(IPAddress.Parse(serverIPAddress), 8500));
 
             // Listen for new clients
             serverSocket.Listen(32);
