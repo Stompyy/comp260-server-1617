@@ -28,8 +28,6 @@ namespace Winform_Client
         static LoginForm m_LoginForm;
         static RegisterNewUser m_RegisterNewUserForm;
 
-        static String m_ServerIPAddress = "165.227.227.143";//127.0.0.1
-
         // Constructor
         public Form1()
         {
@@ -56,7 +54,7 @@ namespace Winform_Client
                 try
                 {
                     form.m_Server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                    form.m_Server.Connect(new IPEndPoint(IPAddress.Parse(m_ServerIPAddress), 8500));
+                    form.m_Server.Connect(new IPEndPoint(IPAddress.Parse("192.168.1.224"), 8500));//"165.227.227.143"
                     form.m_Connected = true;
 
                     m_MainForm.Invoke(new MethodInvoker(delegate ()
