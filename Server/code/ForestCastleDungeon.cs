@@ -68,7 +68,7 @@ namespace Server
                     "Lagoon",
                     "null",
                     "<You use the key!\r\n\r\nCastle prison",
-                    "You sense anger, fear, aggression... There is a hole falling straight down into the cave floor to the west.",
+                    "You sense anger, fear, aggression... There is a locked grate over a hole falling straight down into the cave floor to the west.",
                     "false" });
 
             rooms.AddEntry(new string[] {

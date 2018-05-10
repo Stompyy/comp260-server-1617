@@ -9,7 +9,11 @@ namespace Winform_Client
 {
     class Encryption
     {
-        // code found at https://codereview.stackexchange.com/questions/93614/salt-generation-in-c?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+        /*
+         * code found at https://codereview.stackexchange.com/questions/93614/salt-generation-in-c?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+         * 
+         * Generates a random salt
+         */
         private static int saltLengthLimit = 32;
         private static byte[] GetSalt()
         {
@@ -36,6 +40,9 @@ namespace Winform_Client
 
         static RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider();
 
+        /*
+         * Encrypts password with a new salt, passing the newly created salt out as an out String argument
+         */
         public static String encryptPasswordWithSalt(String password, out String saltString)
         {
             var salt = GetSalt();
@@ -47,6 +54,9 @@ namespace Winform_Client
             return Convert.ToBase64String(hash);
         }
 
+        /*
+         * Encrypts password with an existing passed in salt
+         */
         public static String encryptPasswordWithSalt(String password, Byte[] salt)
         {
             var hash = GenerateSaltedHash(Encoding.UTF8.GetBytes(password), salt);
@@ -54,26 +64,22 @@ namespace Winform_Client
             return Convert.ToBase64String(hash);
         }
 
-        static byte[] GenerateHash(byte[] plainText)
+        /*
+         * Generates a salted hash from a password and salt
+         */
+        static byte[] GenerateSaltedHash(byte[] passwordByteArray, byte[] salt)
         {
             HashAlgorithm algorithm = new SHA256Managed();
 
-            return algorithm.ComputeHash(plainText);
-        }
+            byte[] plainTextWithSaltBytes = new byte[passwordByteArray.Length + salt.Length];
 
-        static byte[] GenerateSaltedHash(byte[] plainTextPassword, byte[] salt)
-        {
-            HashAlgorithm algorithm = new SHA256Managed();
-
-            byte[] plainTextWithSaltBytes = new byte[plainTextPassword.Length + salt.Length];
-
-            for (int i = 0; i < plainTextPassword.Length; i++)
+            for (int i = 0; i < passwordByteArray.Length; i++)
             {
-                plainTextWithSaltBytes[i] = plainTextPassword[i];
+                plainTextWithSaltBytes[i] = passwordByteArray[i];
             }
             for (int i = 0; i < salt.Length; i++)
             {
-                plainTextWithSaltBytes[plainTextPassword.Length + i] = salt[i];
+                plainTextWithSaltBytes[passwordByteArray.Length + i] = salt[i];
             }
 
             return algorithm.ComputeHash(plainTextWithSaltBytes);

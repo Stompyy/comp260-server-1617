@@ -22,7 +22,7 @@ namespace Server
             items.AddEntry(new string[] {
                 "finaldoorkey",
                     Program.GetNextUniqueID().ToString(),
-                    "cave",
+                    "Cave",
                     "null",
                     "This key looks like it might open the final door!",
                     "null",
@@ -230,7 +230,7 @@ namespace Server
             items.AddEntry(new string[] {
                 "mastersword",                              // name
                     Program.GetNextUniqueID().ToString(),   // ID
-                    "'Castle courtyard",                    // room
+                    "Castle courtyard",                    // room
                     "null",                                 // owner
                     "There is an image of the triforce on the hilt.",   // description
                     "false",                                // isEquipped
@@ -323,8 +323,8 @@ namespace Server
                     Program.GetNextUniqueID().ToString(),   // ID
                     "<You use the key!\r\n\r\nCastle prison",   // room
                     "null",                                 // owner
-                    "t is so bulky you do not think you can even hold a shield at the same time.",  // description
-                    "'false",                               // isEquipped
+                    "It is so bulky you do not think you can even hold a shield at the same time.",  // description
+                    "false",                                // isEquipped
                     "null",                                 // useMessage
                     "0",                                    // healAmount
                     "0",                                    // damage

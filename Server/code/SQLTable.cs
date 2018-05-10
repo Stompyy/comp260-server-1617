@@ -63,7 +63,7 @@ namespace Server
          */
         public bool queryExists(String query, String field)
         {
-            sqliteCommand command = new sqliteCommand("select * from " + m_TableName + " where @field = @query", m_Connection);
+            sqliteCommand command = new sqliteCommand("select * from " + m_TableName + " where " + field + " = @query", m_Connection);
 
             command.Parameters.Add("@query", System.Data.DbType.String).Value = query;
             command.Parameters.Add("@field", System.Data.DbType.String).Value = field;
@@ -85,7 +85,7 @@ namespace Server
          */
         public bool queryOtherFieldFromName(String name, String query, String field)
         {
-            sqliteCommand command = new sqliteCommand("select @field from " + m_TableName + " where name = @name", m_Connection);
+            sqliteCommand command = new sqliteCommand("select " + field + " from " + m_TableName + " where name = @name", m_Connection);
 
             command.Parameters.Add("@name", System.Data.DbType.String).Value = name;
             command.Parameters.Add("@field", System.Data.DbType.String).Value = field;
@@ -107,7 +107,7 @@ namespace Server
          */
         public String getStringFieldFromName(String name, String field)
         {
-            sqliteCommand command = new sqliteCommand("select @field from " + m_TableName + " where name = @name", m_Connection);
+            sqliteCommand command = new sqliteCommand("select " + field + " from " + m_TableName + " where name = @name", m_Connection);
 
             command.Parameters.Add("@name", System.Data.DbType.String).Value = name;
             command.Parameters.Add("@field", System.Data.DbType.String).Value = field;
@@ -127,7 +127,7 @@ namespace Server
          */
         public int getIntFieldFromName(String name, String field)
         {
-            sqliteCommand command = new sqliteCommand("select * from " + m_TableName + " where name = @name", m_Connection);
+            sqliteCommand command = new sqliteCommand("select " + field + " from " + m_TableName + " where name = @name", m_Connection);
 
             command.Parameters.Add("@name", System.Data.DbType.String).Value = name;
             command.Parameters.Add("@field", System.Data.DbType.String).Value = field;
@@ -152,7 +152,7 @@ namespace Server
          */
         public String getStringFieldFromId(int id, String field)
         {
-            sqliteCommand command = new sqliteCommand("select @field from " + m_TableName + " where id = @id", m_Connection);
+            sqliteCommand command = new sqliteCommand("select " + field + " from " + m_TableName + " where id = @id", m_Connection);
 
             command.Parameters.Add("@id", System.Data.DbType.UInt32).Value = id;
             command.Parameters.Add("@field", System.Data.DbType.String).Value = field;
@@ -175,7 +175,7 @@ namespace Server
 
             try
             {
-                sqliteCommand command = new sqliteCommand("select name from " + m_TableName + " where @field = @query", m_Connection);
+                sqliteCommand command = new sqliteCommand("select name from " + m_TableName + " where " + field + " = @query", m_Connection);
 
                 command.Parameters.Add("@query", System.Data.DbType.String).Value = query;
                 command.Parameters.Add("@field", System.Data.DbType.String).Value = field;
@@ -197,21 +197,24 @@ namespace Server
          */
         public List<String> getNamesFromTwoFields(String fieldOne, String queryOne, String fieldTwo, String queryTwo)
         {
-            sqliteCommand command = new sqliteCommand("select name from " + m_TableName + " where @field1 = @query1 and @field2 = @query2", m_Connection);
-
-            command.Parameters.Add("@query1", System.Data.DbType.String).Value = queryOne;
-            command.Parameters.Add("@query2", System.Data.DbType.String).Value = queryTwo;
-            command.Parameters.Add("@field1", System.Data.DbType.String).Value = fieldOne;
-            command.Parameters.Add("@field2", System.Data.DbType.String).Value = fieldTwo;
-
-            sqliteDataReader reader = command.ExecuteReader();
-
             List<String> returnList = new List<string>();
 
-            while (reader.NextResult())
+            try
             {
-                returnList.Add(reader.ToString());
-            }
+                sqliteCommand command = new sqliteCommand("select name from " + m_TableName + " where " + fieldOne + " = @query1 and " + fieldTwo + " = @query2", m_Connection);
+
+                command.Parameters.Add("@query1", System.Data.DbType.String).Value = queryOne;
+                command.Parameters.Add("@query2", System.Data.DbType.String).Value = queryTwo;
+                command.Parameters.Add("@field1", System.Data.DbType.String).Value = fieldOne;
+                command.Parameters.Add("@field2", System.Data.DbType.String).Value = fieldTwo;
+
+                sqliteDataReader reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    returnList.Add(reader["name"].ToString());
+                }
+            } catch { }
             return returnList;
         }
 
@@ -220,7 +223,7 @@ namespace Server
          */
         public void setFieldFromName(String name, String data, String field)
         {
-            sqliteCommand command = new sqliteCommand("update " + m_TableName + " set @field = @data where name = @name", m_Connection);
+            sqliteCommand command = new sqliteCommand("update " + m_TableName + " set " + field + " = @data where name = @name", m_Connection);
 
             command.Parameters.Add("@data", System.Data.DbType.String).Value = data;
             command.Parameters.Add("@name", System.Data.DbType.String).Value = name;
@@ -248,7 +251,7 @@ namespace Server
          */
         public void setFieldFromID(int id, String data, String field)
         {
-            sqliteCommand command = new sqliteCommand("update " + m_TableName + " set @field = @data where id = @id", m_Connection);
+            sqliteCommand command = new sqliteCommand("update " + m_TableName + " set " + field + " = @data where id = @id", m_Connection);
 
             command.Parameters.Add("@id", System.Data.DbType.UInt32).Value = id;
             command.Parameters.Add("@data", System.Data.DbType.String).Value = data;
@@ -262,7 +265,7 @@ namespace Server
          */
         public void setFieldFromID(int id, int data, String field)
         {
-            sqliteCommand command = new sqliteCommand("update " + m_TableName + " set @field = @data where id = @id", m_Connection);
+            sqliteCommand command = new sqliteCommand("update " + m_TableName + " set " + field + " = @data where id = @id", m_Connection);
 
             command.Parameters.Add("@id", System.Data.DbType.UInt32).Value = id;
             command.Parameters.Add("@data", System.Data.DbType.UInt32).Value = data;

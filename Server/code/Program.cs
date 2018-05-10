@@ -413,7 +413,7 @@ namespace Server
                                                 if (sendMsg.Substring(0, 5) == "<Win>")
                                                 {
                                                     // Send the complete message to the player socket
-                                                    SendDeathMessage(clientSocket, sendMsg);
+                                                    SendGameMessage(clientSocket, "", sendMsg);
 
                                                     // Lost the player message
                                                     String output = clientName + " has reached the end!";
@@ -628,10 +628,16 @@ namespace Server
          */
         static void Main(string[] args)
         {
-            // Initialise the database
+            // Create the database
             database = new SQLDatabase("database");
 
-            //
+            // Good to keep the following column names strings in this scope as they are critical to the program.
+            // Initially I thought to create a seperate static class to hold this information or to give it to
+            // the database or table class to initialise, but all tables are initialised from commands in this
+            // scope, new players, IDs, and logins are created and added in this Program.cs, so it makes sense to 
+            // keep this information here also.
+
+            // Create the login table
             loginsTable = database.addLoginTable("logins",
                 "name varchar(20) NOT NULL, " +
                 "passwordHash varchar(512) NOT NULL, " +
@@ -639,6 +645,7 @@ namespace Server
                 "isLoggedIn varchar(8), " +
                 "id int NOT NULL");
 
+            // Create the dungeon table 
             dungeonTable = database.addDungeonTable("dungeon",
                 "name varchar(24) NOT NULL, " +
                 "id int NOT NULL, " +
@@ -649,6 +656,7 @@ namespace Server
                 "description varchar(256) NOT NULL, " +
                 "isLocked varchar(8) NOT NULL");
             
+            // Create the players table
             playersTable = database.addPlayersTable("players",
                 "name varchar(24) NOT NULL, " +
                 "id int NOT NULL, " +
@@ -665,6 +673,7 @@ namespace Server
                 "attackDamage int NOT NULL, " +
                 "armourClass int NOT NULL");
 
+            // Create the items table
             itemsTable = database.addItemsTable("items",
                 "name varchar(24) NOT NULL, " +
                 "id int NOT NULL, " +
@@ -676,13 +685,14 @@ namespace Server
                 "healAmount int, " +
                 "damage int, " +
                 "armourClass int, " +
-                "roomUnlocks varchar(24)");
+                "roomUnlocks varchar(128)");
 
-            // Simmply stores the next avilable ID to use
+            // This ID table will simply stores the next available ID to use
             IDTable = database.addIDTable("ID",
                 "name varchar(24) NOT NULL, " +
                 "nextID int");
 
+            // Create the NPC table
             npcsTable = database.addNPCTable("npcs",
                 "name varchar(20) NOT NULL, " +
                 "id int NOT NULL, " +
@@ -699,6 +709,7 @@ namespace Server
             // Initialise the ID table first as will be used to assign incrementing ids to all the other database table items
             IDTable.AddIDEntry("next", 0 );
             
+            // Initialise tables with preset values found in the static classes
             ForestCastleDungeon.Init(dungeonTable);
             NPCs.Init(npcsTable);
             Items.Init(itemsTable);
@@ -722,7 +733,7 @@ namespace Server
 
             while (!bQuit)
             {
-                // When there is a new connection, create a new socket
+                // When there is a new connection, create a new socket reference
                 Socket serverClient = serverSocket.Accept();
 
                 // Start a new thread assigned to this socket

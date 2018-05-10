@@ -665,7 +665,7 @@ namespace Server
                             String newRoomName = t_Dungeon.getStringFieldFromName(m_CurrentRoomName, direction);
                             
                             // If not null
-                            if (newRoomName != "")
+                            if (newRoomName != v_Null)
                             {
                                 // Checks if target room is locked
                                 if (t_Dungeon.getStringFieldFromName(newRoomName, "isLocked") == v_True)
@@ -885,10 +885,10 @@ namespace Server
             message += "\r\n\r\nExits:\r\n";
 
             // List the exits if that room has a non empty field for that direction in the table
-            if (t_Dungeon.getStringFieldFromName(roomName, "north") != "") message += "north, ";
-            if (t_Dungeon.getStringFieldFromName(roomName, "south") != "") message += "south, ";
-            if (t_Dungeon.getStringFieldFromName(roomName, "east") != "") message += "east, ";
-            if (t_Dungeon.getStringFieldFromName(roomName, "west") != "") message += "west ";
+            if (t_Dungeon.getStringFieldFromName(roomName, "north") != v_Null) message += "north, ";
+            if (t_Dungeon.getStringFieldFromName(roomName, "south") != v_Null) message += "south, ";
+            if (t_Dungeon.getStringFieldFromName(roomName, "east") != v_Null) message += "east, ";
+            if (t_Dungeon.getStringFieldFromName(roomName, "west") != v_Null) message += "west ";
             
             // Get all items with this room as their room field
             List<String> itemsInRoom = t_Items.getNamesFromField(f_Room, roomName);
